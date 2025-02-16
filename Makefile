@@ -6,9 +6,11 @@
 #    By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/11/24 23:26:33 by sdell-er          #+#    #+#              #
-#    Updated: 2024/11/24 23:49:55 by sdell-er         ###   ########.fr        #
+#    Updated: 2025/02/16 15:49:30 by sdell-er         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
+
+# https://www.alien.net.au/irc/irc2numerics.html
 
 NAME = ircserv
 SRC = main.cpp
