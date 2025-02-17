@@ -10,10 +10,14 @@
 #                                                                              #
 # **************************************************************************** #
 
+# https://chatgpt.com/c/67afec25-ec14-800c-8ff0-a859501182d0
+# https://chatgpt.com/c/67b37fb3-a6f4-800c-ac29-1848245ad517
 # https://www.alien.net.au/irc/irc2numerics.html
 
 NAME = ircserv
-SRC = main.cpp
+SRC = main.cpp \
+	Server.cpp \
+	Channel.cpp
 
 FLAGS = -Wall -Wextra -Werror -std=c++98
 CC = c++

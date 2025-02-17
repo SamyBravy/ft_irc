@@ -1,73 +1,112 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <iostream>
-#include <cstring>
-#include <cstdio>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.cpp                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/02/17 23:18:32 by samuele           #+#    #+#             */
+/*   Updated: 2025/02/17 23:31:53 by samuele          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
+#include "ft_irc.hpp"
+#include "Server.hpp"
+#include "Channel.hpp"
 
-int main() {
-    int server_fd, client_fd;
-    struct sockaddr_in server_addr, client_addr;
-    socklen_t client_addr_len = sizeof(client_addr);
-    char buffer[1024];
-    int port = 6667; // Default IRC port
-
-    // Create the server socket
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        perror("socket");
+int main(int argc, char *argv[])
+{
+    if (argc != 3)
+    {
+        std::cerr << "Error: usage: " << argv[0] << " <port> <password>" << std::endl;
         return 1;
     }
 
-    // Set up the server address struct
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET; // Set the address family to IPv4
-    server_addr.sin_addr.s_addr = INADDR_ANY; // Bind to all available interfaces
-    server_addr.sin_port = htons(port); // Convert the port to network byte order
-
-    // Bind the socket to the address and port
-    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("bind");
-        close(server_fd);
+    if (!isDigit(argv[1]))
+    {
+        std::cerr << "Error: port must be a natural number" << std::endl;
         return 1;
     }
 
-    // Listen for incoming connections
-    if (listen(server_fd, 5) < 0) {
-        perror("listen");
-        close(server_fd);
+    Server server(strToNum<int>(argv[1]));
+
+    try
+    {
+        server.run();
+    }
+    catch (const Server::ServerException &e)
+    {
+        std::cerr << e.what() << std::endl;
         return 1;
     }
+    
+    // Inizializziamo l'array di file descriptor per poll()
+    struct pollfd fds[MAX_CLIENTS + 1];  // +1 per il socket del server
+    fds[0].fd = server.getFd();      // Il primo fd è il socket del server
+    fds[0].events = POLLIN;  // Monitoriamo nuove connessioni
 
-    std::cout << "Server listening on port " << port << std::endl;
+    for (int i = 1; i <= MAX_CLIENTS; i++)
+        fds[i].fd = -1;  // Inizializziamo gli slot per i client
 
-    // Accept a connection
-    client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
-    if (client_fd < 0) {
-        perror("accept");
-        close(server_fd);
-        return 1;
+    while (1)
+    {
+        int ret = poll(fds, MAX_CLIENTS + 1, -1); // Attende eventi
+        if (ret > 0)
+        {
+            // 1. Controlliamo se ci sono nuove connessioni
+            if (fds[0].revents & POLLIN)
+            {
+                int client_fd = accept(server.getFd(), NULL, NULL);
+                if (client_fd != -1)
+                {
+                    for (int i = 1; i <= MAX_CLIENTS; i++)
+                    {
+                        if (fds[i].fd == -1)
+                        { // Troviamo uno slot libero
+                            fds[i].fd = client_fd;
+                            fds[i].events = POLLIN;  // Monitoriamo i dati in arrivo
+                            std::cout << "New client connected (fd: " << client_fd << ")" << std::endl;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 2. Controlliamo se qualche client ha inviato dati
+            for (int i = 1; i <= MAX_CLIENTS; i++)
+            {
+                if (fds[i].fd != -1 && (fds[i].revents & POLLIN))
+                {
+                    char buffer[1024];
+                    ssize_t n = read(fds[i].fd, buffer, sizeof(buffer));
+                    if (n > 0)
+                    {
+                        buffer[n] = '\0';
+                        std::cout << "Client " << fds[i].fd << " says: \"" << buffer << "\"" << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "Client " << fds[i].fd << " disconnected" << std::endl;
+                        close(fds[i].fd);
+                        fds[i].fd = -1;
+                    }
+                }
+            }
+        }
+        else if (ret == -1)
+            return 1;
     }
-
-    std::cout << "Client connected" << std::endl;
-
-    // Read data from the client
-    ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
-    if (bytes_read < 0) {
-        perror("read");
-        close(client_fd);
-        close(server_fd);
-        return 1;
-    }
-
-    buffer[bytes_read] = '\0'; // Null-terminate the buffer
-    std::cout << "Received message: " << buffer << std::endl;
-
-    // Close the client and server sockets
-    close(client_fd);
-    close(server_fd);
 
     return 0;
 }
+
+bool isDigit(std::string str)
+{
+    for (size_t i = 0; i < str.length(); i++)
+    {
+        if (!isdigit(str[i]))
+            return false;
+    }
+    return true;
+}
+
