@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ft_irc.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
+/*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/17 23:10:08 by samuele           #+#    #+#             */
-/*   Updated: 2025/02/17 23:20:08 by samuele          ###   ########.fr       */
+/*   Updated: 2025/02/18 16:40:54 by sdell-er         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@
 # include <sstream>
 # include <poll.h>
 # include <cstdlib>
+# include <vector>
 
 bool isDigit(std::string str);
 

@@ -17,6 +17,7 @@
 NAME = ircserv
 SRC = main.cpp \
 	Server.cpp \
+	Client.cpp \
 	Channel.cpp
 
 FLAGS = -Wall -Wextra -Werror -std=c++98

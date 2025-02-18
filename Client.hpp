@@ -1,30 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Channel.hpp                                        :+:      :+:    :+:   */
+/*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/17 22:15:27 by samuele           #+#    #+#             */
-/*   Updated: 2025/02/18 15:27:10 by sdell-er         ###   ########.fr       */
+/*   Created: 2025/02/18 16:37:41 by sdell-er          #+#    #+#             */
+/*   Updated: 2025/02/18 16:40:01 by sdell-er         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef CHANNEL_HPP
-#define CHANNEL_HPP
+#ifndef CLIENT_HPP
+# define CLIENT_HPP
 
-#include "ft_irc.hpp"
+# include "ft_irc.hpp"
 
-class Channel
+struct Client
 {
-	private:
-		std::string _name;
-
-	public:
-		Channel();
-		~Channel();
-		
-		void setName(const std::string &name) { _name = name; }
+	int _fd;
 };
 
 #endif
