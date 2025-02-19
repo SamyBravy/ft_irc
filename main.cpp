@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
+/*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/18 15:07:14 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/19 01:02:44 by samuele          ###   ########.fr       */
+/*   Created: 2025/02/19 12:11:14 by sdell-er          #+#    #+#             */
+/*   Updated: 2025/02/19 12:11:15 by sdell-er         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,8 +40,8 @@ int main(int argc, char *argv[])
 
 	while (1)
 	{
-        struct pollfd *fds = server.getPollfds();
-        
+		struct pollfd *fds = server.getPollfds();
+		
 		int ret = poll(fds, MAX_CLIENTS + 1, -1);
 		if (ret > 0)
 		{
@@ -49,9 +49,9 @@ int main(int argc, char *argv[])
 			{
 				int client_fd = accept(server.getFd(), NULL, NULL);
 				if (client_fd != -1)
-                    server.addClient(client_fd);
-                else
-                    std::cerr << "Error accepting new client" << std::endl;
+					server.addClient(client_fd);
+				else
+					std::cerr << "Error accepting new client" << std::endl;
 			}
 			
 			for (int i = 1; fds[i].fd != -1 && i <= server.getClientsSize(); i++)
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 					if (n > 0)
 					{
 						buffer[n] = '\0';
-                        server.handleMessage(buffer, i - 1);
+						server.handleMessage(buffer, i - 1);
 					}
 					else if (n == 0)
 					{
@@ -100,17 +100,17 @@ bool isDigit(std::string str)
 
 std::vector<std::string> split(const std::string &str, std::string delim)
 {
-    std::vector<std::string> tokens;
-    size_t start = 0;
-    size_t end;
+	std::vector<std::string> tokens;
+	size_t start = 0;
+	size_t end;
 
-    while ((end = str.find(delim, start)) != std::string::npos)
-    {
-        tokens.push_back(str.substr(start, end - start));
-        start = end + delim.length();
-    }
-    if (start < str.length())
-        tokens.push_back(str.substr(start));
+	while ((end = str.find(delim, start)) != std::string::npos)
+	{
+		tokens.push_back(str.substr(start, end - start));
+		start = end + delim.length();
+	}
+	if (start < str.length())
+		tokens.push_back(str.substr(start));
 
-    return tokens;
+	return tokens;
 }

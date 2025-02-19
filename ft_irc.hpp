@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ft_irc.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
+/*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/17 23:10:08 by samuele           #+#    #+#             */
-/*   Updated: 2025/02/19 00:31:48 by samuele          ###   ########.fr       */
+/*   Created: 2025/02/19 12:11:19 by sdell-er          #+#    #+#             */
+/*   Updated: 2025/02/19 12:11:20 by sdell-er         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,12 +33,12 @@ std::vector<std::string> split(const std::string &str, std::string delim);
 template <typename T>
 T strToNum(std::string str)
 {
-    std::stringstream ss(str);
-    T num;
+	std::stringstream ss(str);
+	T num;
 
-    ss >> num;
+	ss >> num;
 
-    return num;
+	return num;
 }
 
 #endif

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
+/*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/18 16:37:41 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/19 00:47:02 by samuele          ###   ########.fr       */
+/*   Created: 2025/02/19 12:11:24 by sdell-er          #+#    #+#             */
+/*   Updated: 2025/02/19 12:11:25 by sdell-er         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,13 +18,13 @@
 struct Client
 {
 	int fd;
-    bool authenticated;
-    std::string nickname;
-    std::string username;
-    std::string realname;
-    
-    Client(int clientFd = -1);
-    ~Client();
+	bool authenticated;
+	std::string nickname;
+	std::string username;
+	std::string realname;
+	
+	Client(int clientFd = -1);
+	~Client();
 };
 
 #endif

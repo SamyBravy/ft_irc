@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
+/*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/18 15:26:58 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/19 01:10:00 by samuele          ###   ########.fr       */
+/*   Created: 2025/02/19 12:11:07 by sdell-er          #+#    #+#             */
+/*   Updated: 2025/02/19 12:11:08 by sdell-er         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,12 +18,12 @@ Server::~Server()
 {
 	if (_fd != -1)
 		close(_fd);
-    
-    for (size_t i = 0; i < _clients.size(); i++)
-    {
-        if (_clients[i].fd != -1)
-            close(_clients[i].fd);
-    }
+	
+	for (size_t i = 0; i < _clients.size(); i++)
+	{
+		if (_clients[i].fd != -1)
+			close(_clients[i].fd);
+	}
 }
 
 void Server::run()
@@ -54,55 +54,50 @@ struct pollfd *Server::getPollfds()
 
 void Server::addClient(int client_fd)
 {
-    _clients.push_back(Client(client_fd));
+	_clients.push_back(Client(client_fd));
 }
 
 void Server::removeClient(int i)
 {
-    _clients.erase(_clients.begin() + i);
+	_clients.erase(_clients.begin() + i);
 }
 
 void Server::handleMessage(std::string buffer, int i)
 {
-    std::cout << "Client " << _clients[i].fd << " sent: " << buffer << std::endl;
-    std::vector<std::string> prova = split(buffer, "\r\n");
-    for (size_t i = 0; i < prova.size(); i++)
-        std::cout << "\"" << prova[i] << "\"" << std::endl;
-    
-    if (_clients[i].authenticated == false)
-    {
+	if (_clients[i].authenticated == false)
+	{
 		std::vector<std::string> tokens = split(buffer, "\r\n");
-        
-        for (size_t i = 0; i < tokens.size(); i++)
-        {
-            if (tokens[i].find("CAP LS ") != std::string::npos)
-            {
-                continue;
-            }
-            else if (tokens[i].find("PASS ") != std::string::npos)
-            {
-                if (split(tokens[i], " ").size() >= 2 && split(tokens[i], " ")[1] == _password)
-                {
-                    _clients[i].authenticated = true;
-                    std::cout << "Client " << _clients[i].fd << " authenticated" << std::endl;
-                }
-                else
-                {
-                    std::cout << "Client " << _clients[i].fd << " failed to authenticate" << std::endl;
-                    removeClient(i);
-                    return;
-                }
-                continue;
-            }
-        }
-        
-        if (_clients[i].authenticated == false)
-        {
-            std::cout << "Client " << _clients[i].fd << " failed to authenticate" << std::endl;
-            removeClient(i);
-            return;
-        }
-    }
+		
+		for (size_t i = 0; i < tokens.size(); i++)
+		{
+			if (tokens[i].find("CAP LS ") != std::string::npos)
+			{
+				continue;
+			}
+			else if (tokens[i].find("PASS ") != std::string::npos)
+			{
+				if (split(tokens[i], " ").size() >= 2 && split(tokens[i], " ")[1] == _password)
+				{
+					_clients[i].authenticated = true;
+					std::cout << "Client " << _clients[i].fd << " authenticated" << std::endl;
+				}
+				else
+				{
+					std::cout << "Client " << _clients[i].fd << " failed to authenticate" << std::endl;
+					removeClient(i);
+					return;
+				}
+				continue;
+			}
+		}
+		
+		if (_clients[i].authenticated == false)
+		{
+			std::cout << "Client " << _clients[i].fd << " failed to authenticate" << std::endl;
+			removeClient(i);
+			return;
+		}
+	}
 }
 
 void Server::createSocket()
