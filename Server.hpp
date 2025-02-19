@@ -6,7 +6,7 @@
 /*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/19 12:10:56 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/19 12:10:57 by sdell-er         ###   ########.fr       */
+/*   Updated: 2025/02/19 12:14:13 by sdell-er         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 # include "Channel.hpp"
 # include "Client.hpp"
 # include "ft_irc.hpp"
+
 class Server
 {	
 	private:
