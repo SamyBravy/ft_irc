@@ -6,12 +6,12 @@
 /*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/17 22:16:01 by samuele           #+#    #+#             */
-/*   Updated: 2025/02/17 23:21:06 by samuele          ###   ########.fr       */
+/*   Updated: 2025/02/18 22:19:48 by samuele          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Channel.hpp"
 
-Channel::Channel() { }
+Channel::Channel(std::string name) : _name(name) { }
 
 Channel::~Channel() { }

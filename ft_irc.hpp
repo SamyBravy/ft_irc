@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ft_irc.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
+/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/17 23:10:08 by samuele           #+#    #+#             */
-/*   Updated: 2025/02/18 16:40:54 by sdell-er         ###   ########.fr       */
+/*   Updated: 2025/02/19 00:31:48 by samuele          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@
 # include <vector>
 
 bool isDigit(std::string str);
+std::vector<std::string> split(const std::string &str, std::string delim);
 
 template <typename T>
 T strToNum(std::string str)

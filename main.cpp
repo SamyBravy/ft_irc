@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
+/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/18 15:07:14 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/18 16:49:44 by sdell-er         ###   ########.fr       */
+/*   Updated: 2025/02/19 01:02:44 by samuele          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	Server server(strToNum<int>(argv[1]));
+	Server server(strToNum<int>(argv[1]), argv[2]);
 
 	try
 	{
@@ -37,11 +37,11 @@ int main(int argc, char *argv[])
 		std::cerr << e.what() << std::endl;
 		return 1;
 	}
-	
-	struct pollfd *fds = server.getPollfds();
 
 	while (1)
 	{
+        struct pollfd *fds = server.getPollfds();
+        
 		int ret = poll(fds, MAX_CLIENTS + 1, -1);
 		if (ret > 0)
 		{
@@ -49,42 +49,31 @@ int main(int argc, char *argv[])
 			{
 				int client_fd = accept(server.getFd(), NULL, NULL);
 				if (client_fd != -1)
-				{
-					for (int i = 1; i <= MAX_CLIENTS; i++)
-					{
-						if (fds[i].fd == -1)
-						{
-							server.setClientFd(i, client_fd);
-							std::cout << "New client connected (fd: " << client_fd << ")" << std::endl;
-							break;
-						}
-					}
-				}
+                    server.addClient(client_fd);
+                else
+                    std::cerr << "Error accepting new client" << std::endl;
 			}
 			
-			for (int i = 1; i <= MAX_CLIENTS; i++)
+			for (int i = 1; fds[i].fd != -1 && i <= server.getClientsSize(); i++)
 			{
-				if (fds[i].fd != -1 && (fds[i].revents & POLLIN))
+				if (fds[i].revents & POLLIN)
 				{
 					char buffer[1024];
 					int n = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 					if (n > 0)
 					{
 						buffer[n] = '\0';
-						std::cout << "Client " << fds[i].fd << " says: \"" << buffer << "\"" << std::endl;
-						send(fds[i].fd, buffer, n, 0);
+                        server.handleMessage(buffer, i - 1);
 					}
 					else if (n == 0)
 					{
 						std::cout << "Client " << fds[i].fd << " disconnected" << std::endl;
-						close(fds[i].fd);
-						fds[i].fd = -1;
+						server.removeClient(i - 1);
 					}
 					else
 					{
 						std::cerr << "Error receiving data from client " << fds[i].fd << std::endl;
-						close(fds[i].fd);
-						fds[i].fd = -1;
+						server.removeClient(i - 1);
 					}
 				}
 			}
@@ -109,3 +98,19 @@ bool isDigit(std::string str)
 	return true;
 }
 
+std::vector<std::string> split(const std::string &str, std::string delim)
+{
+    std::vector<std::string> tokens;
+    size_t start = 0;
+    size_t end;
+
+    while ((end = str.find(delim, start)) != std::string::npos)
+    {
+        tokens.push_back(str.substr(start, end - start));
+        start = end + delim.length();
+    }
+    if (start < str.length())
+        tokens.push_back(str.substr(start));
+
+    return tokens;
+}
