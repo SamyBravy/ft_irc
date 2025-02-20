@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Server.cpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/19 12:11:07 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/20 01:14:56 by samuele          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "Server.hpp"
 
 Server::Server(int port, const std::string &password) : _fd(-1), _port(port), _password(password) { }
@@ -90,9 +78,9 @@ void Server::handleMessage(std::string buffer, int iClient)
 
     for (size_t i = 0; i < tokens.size(); i++)
     {
-        if (isStartSubstring(tokens[i], "CAP "))
+        if (isStartSubstring(tokens[i], "CAP"))
             continue;
-        else if (isStartSubstring(tokens[i], "PASS "))
+        else if (isStartSubstring(tokens[i], "PASS"))
         {
             if (countWords(tokens[i]) < 2)
                 sendMsg(_clients[iClient].fd, PREFIX_ERR_NEEDMOREPARAMS + _clients[iClient].nickname + " PASS" + ERR_NEEDMOREPARAMS);
@@ -106,7 +94,7 @@ void Server::handleMessage(std::string buffer, int iClient)
         }
         else if (_clients[iClient].authState & 0b00000001)
         {
-            if (isStartSubstring(tokens[i], "NICK "))
+            if (isStartSubstring(tokens[i], "NICK"))
             {
                 if (countWords(tokens[i]) < 2)
                     sendMsg(_clients[iClient].fd, PREFIX_ERR_NONICKNAMEGIVEN + _clients[iClient].nickname + ERR_NONICKNAMEGIVEN);
@@ -118,7 +106,7 @@ void Server::handleMessage(std::string buffer, int iClient)
                     _clients[iClient].authState |= 0b00000010;
                 }
             }
-            else if (isStartSubstring(tokens[i], "USER "))
+            else if (isStartSubstring(tokens[i], "USER"))
             {
                 if (countWords(tokens[i]) < 5)
                     sendMsg(_clients[iClient].fd, PREFIX_ERR_NEEDMOREPARAMS + _clients[iClient].nickname + " USER" + ERR_NEEDMOREPARAMS);
@@ -175,6 +163,8 @@ void Server::bindServer()
 		close(_fd);
 		throw ServerException("Error binding server");
 	}
+
+    _ip = inet_ntoa(_server_addr.sin_addr);
 }
 
 void Server::listenServer()
@@ -185,7 +175,7 @@ void Server::listenServer()
 		throw ServerException("Error listening server");
 	}
 
-	std::cout << "Server listening on port " << _port << std::endl;
+	std::cout << "Server listening on port " << _port << " with ip address " << _ip << std::endl;
 }
 
 bool Server::clientExists(const std::string &nickname)

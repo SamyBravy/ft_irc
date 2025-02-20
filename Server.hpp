@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Server.hpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/19 12:10:56 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/19 23:29:03 by samuele          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
@@ -22,6 +10,7 @@ class Server
 	private:
 		int _fd;
 		int _port;
+        std::string _ip;
 		std::string _password;
 		std::vector<Client> _clients;
 		std::vector<Channel> _channels;

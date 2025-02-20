@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/19 12:11:14 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/19 23:09:40 by samuele          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "ft_irc.hpp"
 #include "Server.hpp"
 
@@ -23,11 +11,16 @@ int main(int argc, char *argv[])
 		std::cerr << "Error: usage: " << argv[0] << " <port> <password>" << std::endl;
 		return 1;
 	}
-	if (!isDigit(argv[1]))
+	if (!isDigit(argv[1]) || strToNum<int>(argv[1]) < 1024 || strToNum<int>(argv[1]) > 49151)
 	{
-		std::cerr << "Error: port must be a natural number" << std::endl;
+		std::cerr << "Error: port must be a number between 1024 and 49151" << std::endl;
 		return 1;
 	}
+    if (argv[2][0] == '\0')
+    {
+        std::cerr << "Error: password cannot be empty" << std::endl;
+        return 1;
+    }
 
 	Server server(strToNum<int>(argv[1]), argv[2]);
 

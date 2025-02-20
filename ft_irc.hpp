@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ft_irc.hpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/19 12:11:19 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/19 23:47:20 by samuele          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef FT_IRC_HPP
 # define FT_IRC_HPP
 
@@ -30,6 +18,7 @@
 # include <cstring>
 # include <iostream>
 # include <netinet/in.h>
+# include <arpa/inet.h>
 # include <sys/socket.h>
 # include <unistd.h>
 # include <algorithm>

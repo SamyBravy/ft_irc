@@ -1,18 +1,8 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2024/11/24 23:26:33 by sdell-er          #+#    #+#              #
-#    Updated: 2025/02/16 15:49:30 by sdell-er         ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
-
 # https://chatgpt.com/c/67afec25-ec14-800c-8ff0-a859501182d0
 # https://chatgpt.com/c/67b37fb3-a6f4-800c-ac29-1848245ad517
 # https://www.alien.net.au/irc/irc2numerics.html
+# https://dd.ircdocs.horse/refs/commands/motd
+# https://modern.ircdocs.horse/#nick-message
 
 NAME = ircserv
 SRC = main.cpp \
