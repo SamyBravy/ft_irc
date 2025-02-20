@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
+/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/19 12:10:56 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/19 12:14:13 by sdell-er         ###   ########.fr       */
+/*   Updated: 2025/02/19 23:29:03 by samuele          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,13 +29,14 @@ class Server
 		void createSocket();
 		void bindServer();
 		void listenServer();
-		
+
+        bool clientExists(const std::string &nickname);
+
 	public:
-		Server(int port = 8080, std::string password = "password");
+		Server(int port = 8080, const std::string &password = "password");
 		~Server();
 
 		int getFd() const { return _fd; }
-		std::string getPassword() const { return _password; }
 		int getClientsSize() const { return _clients.size(); }
 		struct pollfd *getPollfds();
 		

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: sdell-er <sdell-er@student.42.fr>          +#+  +:+       +#+        */
+/*   By: samuele <samuele@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/19 12:11:24 by sdell-er          #+#    #+#             */
-/*   Updated: 2025/02/19 12:11:25 by sdell-er         ###   ########.fr       */
+/*   Updated: 2025/02/19 23:52:11 by samuele          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,13 @@ struct Client
 {
 	int fd;
 	bool authenticated;
+    short int authState;
+    std::string password;
 	std::string nickname;
 	std::string username;
 	std::string realname;
+    std::string hostname;
+    std::string servername;
 	
 	Client(int clientFd = -1);
 	~Client();

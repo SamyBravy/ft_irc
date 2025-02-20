@@ -35,6 +35,8 @@ clean:
 fclean:
 	@rm -f $(NAME)
 	@echo "\e[0;91m[$(NAME)] deleted!\e[0m"
+	@rm -f clientMessages.txt
+	@rm -f serverMessages.txt
 
 re: fclean all
 
