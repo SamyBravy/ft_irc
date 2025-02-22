@@ -21,7 +21,95 @@ void Server::run()
 	listenServer();
 }
 
-struct pollfd *Server::getPollfds()
+void Server::sendMsg(int fd, std::string msg) const
+{
+    msg += "\r\n";
+
+    if (fd == -1)
+    {
+        for (size_t i = 0; i < _clients.size(); i++)
+        {
+            if (_clients[i].fd != -1)
+            {
+                if (send(_clients[i].fd, msg.c_str(), msg.size(), 0) == -1)
+                    std::cerr << "Error sending message" << std::endl;
+            }
+        }
+    }
+    else if (send(fd, msg.c_str(), msg.size(), 0) == -1)
+        std::cerr << "Error sending message" << std::endl;
+    
+    printLog("serverMessages.txt", msg);
+}
+
+void Server::listenClients()
+{
+    while (1)
+	{
+		struct pollfd *fds = getPollfds();
+		
+		int ret = poll(fds, MAX_CLIENTS + 1, -1);
+		if (ret > 0)
+		{
+			if (fds[0].revents & POLLIN)
+			{
+				int client_fd = accept(_fd, NULL, NULL);
+				if (client_fd != -1)
+                {
+                    try
+                    {
+                        addClient(client_fd);
+                        std::cout << "New client connected: " << client_fd << std::endl;
+                    }
+                    catch (const Server::ServerException &e)
+                    {
+                        std::cerr << e.what() << std::endl;
+                        close(client_fd);
+                    }
+                }
+				else
+					std::cerr << "Error accepting new client" << std::endl;
+			}
+			
+			for (size_t i = 1; i <= _clients.size() && fds[i].fd != -1; i++)
+			{
+				if (fds[i].revents & POLLIN)
+				{
+					char message[1024];
+					int n = recv(fds[i].fd, message, sizeof(message) - 1, 0);
+					if (n > 0)
+					{
+						message[n] = '\0';
+                        std::string messageStr(message);
+                        
+                        messageStr.erase(std::remove(messageStr.begin(), messageStr.end(), '\r'), messageStr.end());
+                        if (messageStr.empty() || messageStr == "\n")
+                            continue;
+                        printLog("clientMessages.txt", messageStr);
+                        std::cout << "Received message from client " << fds[i].fd << ": \"" << messageStr.substr(0, messageStr.size() - 1) << "\"" << std::endl;
+						handleMessage(messageStr, i - 1);
+					}
+					else if (n == 0)
+					{
+						std::cout << "Client " << fds[i].fd << " disconnected" << std::endl;
+						removeClient(i - 1);
+					}
+					else
+					{
+						std::cerr << "Error receiving data from client " << fds[i].fd << std::endl;
+						removeClient(i - 1);
+					}
+				}
+			}
+		}
+		else if (ret == -1)
+		{
+			throw Server::ServerException("Error polling sockets");
+		}
+	}
+}
+
+struct pollfd *Server::getPollfds() const
 {
 	static struct pollfd fds[MAX_CLIENTS + 1];
 
@@ -62,82 +150,135 @@ void Server::removeClient(int i)
 	_clients.erase(_clients.begin() + i);
 }
 
-void Server::handleMessage(std::string buffer, int iClient)
+void Server::passCommand(const std::string &message, Client &client)
+{
+    std::string pass = getWord(message, 1);
+
+    if (countWords(message) < 2)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + std::string("PASS") + ERR_NEEDMOREPARAMS);
+    else if (pass != _password)
+        sendMsg(client.fd, PREFIX_ERR_PASSWDMISMATCH + std::string("PASS") + ERR_PASSWDMISMATCH);
+    else
+        client.password = pass;
+}
+
+void Server::nickCommand(const std::string &message, Client &client)
+{
+    std::string nick = getWord(message, 1);
+
+    if (countWords(message) < 2)
+        sendMsg(client.fd, PREFIX_ERR_NONICKNAMEGIVEN + client.nickname + " NICK" + ERR_NONICKNAMEGIVEN);
+    else if (message.find_first_of(":@#&") != std::string::npos)
+        sendMsg(client.fd, PREFIX_ERR_ERRONEUSNICKNAME + client.nickname + " NICK " + nick + ERR_ERRONEUSNICKNAME);
+    else if (clientExists(nick))
+    {
+        if (client.authenticated == false)
+            sendMsg(client.fd, PREFIX_ERR_NICKNAMEINUSE + std::string(" NICK ") + nick + ERR_NICKNAMEINUSE);
+        else
+            sendMsg(client.fd, PREFIX_ERR_NICKNAMEINUSE + client.nickname + " " + nick + ERR_NICKNAMEINUSE);
+    }
+    else
+    {
+        if (client.authenticated == true)
+            sendMsg(-1, ":" + client.nickname + "!" + client.username + "@" + client.hostname + " NICK :" + nick);
+        client.nickname = nick;
+    }
+}
+
+void Server::userCommand(const std::string &message, Client &client)
+{
+    if (countWords(message) < 5)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " USER" + ERR_NEEDMOREPARAMS);
+    else
+    {
+        client.username = getWord(message, 1);
+        client.hostname = getWord(message, 2);
+        client.servername = getWord(message, 3);
+        if (getWord(message, 4).find_first_of(":") == 0)
+        {
+            client.realname = getWord(message, 4).substr(1);
+            for (int i = 5; i < countWords(message); i++)
+                client.realname += " " + getWord(message, i);
+        }
+        else
+            client.realname = getWord(message, 4);
+    }
+}
+
+void Server::pingCommand(const std::string &message, Client &client)
+{
+    if (countWords(message) < 2)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " PING" + ERR_NEEDMOREPARAMS);
+    else
+        sendMsg(client.fd, std::string(":ft_irc ") + " PONG ft_irc " + getWord(message, 1));
+}
+
+void Server::handleMessage(std::string message, int iClient)
 {
     if (iClient < 0 || iClient >= (int)_clients.size())
     {
         throw ServerException("Error: invalid client index");
     }
 
-    if (!buffer.empty() && buffer[0] == ':' && buffer.find(' ') != std::string::npos)
-    {
-        buffer = buffer.substr(buffer.find(' ') + 1);
-    }
+    Client &client = _clients[iClient];
 
-	std::vector<std::string> tokens = split(buffer, '\n');
-
-    for (size_t i = 0; i < tokens.size(); i++)
+    if (client.authenticated == false)
     {
-        if (isStartSubstring(tokens[i], "CAP"))
-            continue;
-        else if (isStartSubstring(tokens[i], "PASS"))
+        std::vector<std::string> tokens = split(message, '\n');
+
+        for (size_t i = 0; i < tokens.size(); i++)
         {
-            if (countWords(tokens[i]) < 2)
-                sendMsg(_clients[iClient].fd, PREFIX_ERR_NEEDMOREPARAMS + _clients[iClient].nickname + " PASS" + ERR_NEEDMOREPARAMS);
-            else if (_clients[iClient].authenticated == true)
-                sendMsg(_clients[iClient].fd, PREFIX_ERR_ALREADYREGISTRED + _clients[iClient].nickname + ERR_ALREADYREGISTRED);
-            else
+            std::string command = getWord(tokens[i], 0);
+
+            if (command == "CAP")
             {
-                _clients[iClient].password = getWord(tokens[i], 1);
-                _clients[iClient].authState |= 0b00000001;
-            }
-        }
-        else if (_clients[iClient].authState & 0b00000001)
-        {
-            if (isStartSubstring(tokens[i], "NICK"))
-            {
-                if (countWords(tokens[i]) < 2)
-                    sendMsg(_clients[iClient].fd, PREFIX_ERR_NONICKNAMEGIVEN + _clients[iClient].nickname + ERR_NONICKNAMEGIVEN);
-                else if (clientExists(getWord(tokens[i], 1)))
-                    sendMsg(_clients[iClient].fd, PREFIX_ERR_NICKNAMEINUSE + _clients[iClient].nickname + " " + getWord(tokens[i], 1) + ERR_NICKNAMEINUSE);
-                else
+                if (tokens[i] == "CAP LS 302")
                 {
-                    _clients[iClient].nickname = getWord(tokens[i], 1);
-                    _clients[iClient].authState |= 0b00000010;
+                    std::string capabilities = "";
+                    sendMsg(client.fd, "CAP * LS :" + capabilities);
                 }
             }
-            else if (isStartSubstring(tokens[i], "USER"))
-            {
-                if (countWords(tokens[i]) < 5)
-                    sendMsg(_clients[iClient].fd, PREFIX_ERR_NEEDMOREPARAMS + _clients[iClient].nickname + " USER" + ERR_NEEDMOREPARAMS);
-                else if (_clients[iClient].authenticated == true)
-                    sendMsg(_clients[iClient].fd, PREFIX_ERR_ALREADYREGISTRED + _clients[iClient].nickname + ERR_ALREADYREGISTRED);
-                else
-                {
-                    _clients[iClient].username = getWord(tokens[i], 1);
-                    _clients[iClient].hostname = getWord(tokens[i], 2);
-                    _clients[iClient].servername = getWord(tokens[i], 3);
-                    _clients[iClient].realname = tokens[i].substr(tokens[i].find(':', 1) + 1);
-                    _clients[iClient].authState |= 0b00000100;
-                }
-            }
-        }
-        else if (_clients[iClient].authenticated == true)
-        {
-
-        }
-
-        if (!_clients[iClient].authenticated && _clients[iClient].authState == 0b00000111)
-        {
-            if (_clients[iClient].password == _password)
-            {
-                _clients[iClient].authenticated = true;
-                sendMsg(_clients[iClient].fd, ":ft_irc 001 " + _clients[iClient].nickname + " :Welcome to the ft_irc network, " + _clients[iClient].nickname + "!" + _clients[iClient].username + "@" + _clients[iClient].hostname);
-            }
+            else if (command == "PASS" && client.password.empty())
+                passCommand(tokens[i], client);
+            else if (client.password.empty())
+                sendMsg(client.fd, PREFIX_ERR_CUSTOM + std::string(":You must send a password first"));
+            else if (command == "NICK" && client.nickname.empty())
+                nickCommand(tokens[i], client);
+            else if (command == "USER" && client.username.empty())
+                userCommand(tokens[i], client);
+            else if (client.nickname.empty())
+                sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " :You must set a nickname first");
             else
-                sendMsg(_clients[iClient].fd, PREFIX_ERR_PASSWDMISMATCH + _clients[iClient].nickname + ERR_PASSWDMISMATCH);
+                sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " :You must set a username first");
+
+            if (!client.password.empty() && !client.nickname.empty() && !client.username.empty())
+            {
+                client.authenticated = true;
+                sendMsg(client.fd, ":ft_irc 001 " + client.nickname + " :Welcome to the Manicomio Network, " + client.nickname + "!" + client.username + "@" + client.hostname);
+                sendMsg(client.fd, ":ft_irc 002 " + client.nickname + " :Your host is ft_irc, running version 1.0");
+                sendMsg(client.fd, ":ft_irc 003 " + client.nickname + " :This server was created " + getDay(_creationMoment) + ", " + getDate(_creationMoment) + " at " + getTime(_creationMoment));
+                sendMsg(client.fd, ":ft_irc 004 " + client.nickname + " " + client.servername + " 1.0 uMode:none cMode:+i,+t,+k,+o");
+                sendMsg(client.fd, ":ft_irc 375 " + client.nickname + " :- Welcome to the Manicomio");
+                sendMsg(client.fd, ":ft_irc 372 " + client.nickname + " :- Eat my Desktop Background");
+                sendMsg(client.fd, ":ft_irc 376 " + client.nickname + " :- End of MOTD command");
+                break;
+            }
         }
+
+        return;
     }
+
+    std::string command = getWord(message, 0);
+
+    if (command == "CAP") { }
+    else if (command == "PASS" || command == "USER")
+        sendMsg(client.fd, PREFIX_ERR_ALREADYREGISTRED + client.nickname + ERR_ALREADYREGISTRED);
+    else if (command == "NICK")
+        nickCommand(message, client);
+    else if (command == "PING")
+        pingCommand(message, client);
+    else
+        sendMsg(client.fd, PREFIX_ERR_UNKNOWNCOMMAND + client.nickname + " " + command + ERR_UNKNOWNCOMMAND);
 }
 
 void Server::createSocket()
@@ -145,6 +286,7 @@ void Server::createSocket()
 	_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (_fd < 0)
 		throw ServerException("Error creating socket");
+    _creationMoment = time(NULL);
 }
 
 void Server::bindServer()
@@ -178,7 +320,7 @@ void Server::listenServer()
 	std::cout << "Server listening on port " << _port << " with ip address " << _ip << std::endl;
 }
 
-bool Server::clientExists(const std::string &nickname)
+bool Server::clientExists(const std::string &nickname) const
 {
     for (size_t i = 0; i < _clients.size(); i++)
     {

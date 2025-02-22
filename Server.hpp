@@ -14,26 +14,31 @@ class Server
 		std::string _password;
 		std::vector<Client> _clients;
 		std::vector<Channel> _channels;
+        time_t _creationMoment;
+
 		
+        void addClient(int client_fd);
+        void removeClient(int i);
+        bool clientExists(const std::string &nickname) const;
+        struct pollfd *getPollfds() const;
+
 		void createSocket();
 		void bindServer();
 		void listenServer();
 
-        bool clientExists(const std::string &nickname);
+        void sendMsg(int fd, std::string msg) const;
+        void handleMessage(std::string message, int i);
+        void passCommand(const std::string &message, Client &client);
+        void nickCommand(const std::string &message, Client &client);
+        void userCommand(const std::string &message, Client &client);
+        void pingCommand(const std::string &message, Client &client);
 
 	public:
 		Server(int port = 8080, const std::string &password = "password");
 		~Server();
 
-		int getFd() const { return _fd; }
-		int getClientsSize() const { return _clients.size(); }
-		struct pollfd *getPollfds();
-		
-		void addClient(int client_fd);
-		void removeClient(int i);
-
 		void run();
-		void handleMessage(std::string buffer, int i);
+        void listenClients();
 		
 		class ServerException : public std::exception
 		{
