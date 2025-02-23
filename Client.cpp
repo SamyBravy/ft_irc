@@ -1,5 +1,7 @@
+#include "ft_irc.hpp"
 #include "Client.hpp"
 
-Client::Client(int clientFd) : fd(clientFd), authenticated(false) { }
-
-Client::~Client() { }
+std::string Client::getInfo() const
+{
+    return (username + " " + hostname + " " + servername + " " + nickname + " H :0 " + realname);
+}

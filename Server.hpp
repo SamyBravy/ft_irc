@@ -5,6 +5,8 @@
 # include "Client.hpp"
 # include "ft_irc.hpp"
 
+class Channel;
+
 class Server
 {	
 	private:
@@ -13,32 +15,41 @@ class Server
         std::string _ip;
 		std::string _password;
 		std::vector<Client> _clients;
-		std::vector<Channel> _channels;
+		std::map<std::string, Channel> _channels;
         time_t _creationMoment;
 
-		
+
         void addClient(int client_fd);
         void removeClient(int i);
-        bool clientExists(const std::string &nickname) const;
         struct pollfd *getPollfds() const;
-
+        
 		void createSocket();
 		void bindServer();
 		void listenServer();
-
-        void sendMsg(int fd, std::string msg) const;
+        Client &getClient(const std::string nickname);
+        
+        void sendWelcomeMessage(const Client &client) const;
         void handleMessage(std::string message, int i);
+        void capCommand(const std::string &message, Client &client) const;
         void passCommand(const std::string &message, Client &client);
         void nickCommand(const std::string &message, Client &client);
         void userCommand(const std::string &message, Client &client);
-        void pingCommand(const std::string &message, Client &client);
-
+        void pingCommand(const std::string &message, Client &client) const;
+        void whoCommand(const std::string &message, Client &client);
+        void joinCommand(const std::string &message, Client &client);
+        void privmsgCommand(const std::string &message, Client &client);
+        
 	public:
 		Server(int port = 8080, const std::string &password = "password");
 		~Server();
-
+        
 		void run();
         void listenClients();
+
+        void sendMsg(int fd, std::string msg) const;
+        
+        bool clientExists(const std::string &nickname) const;
+        bool channelExists(const std::string &channelName) const;
 		
 		class ServerException : public std::exception
 		{

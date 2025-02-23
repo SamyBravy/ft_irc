@@ -5,6 +5,16 @@
 # define MAX_CHANNELS 1024
 
 # define PREFIX_ERR_CUSTOM ":ft_irc 400 "
+# define PREFIX_ERR_NOSUCHNICK ":ft_irc 401 "
+# define ERR_NOSUCHNICK " :No such nick/channel"
+# define PREFIX_ERR_NOSUCHCHANNEL ":ft_irc 403 "
+# define ERR_NOSUCHCHANNEL " :No such channel"
+# define PREFIX_ERR_CANNOTSENDTOCHAN ":ft_irc 404 "
+# define ERR_CANNOTSENDTOCHAN " :Cannot send to channel"
+# define PREFIX_ERR_NORECIPIENT ":ft_irc 411 "
+# define ERR_NORECIPIENT " :No recipient given (PRIVMSG)"
+# define PREFIX_ERR_NOTEXTTOSEND ":ft_irc 412 "
+# define ERR_NOTEXTTOSEND " :No text to send"
 # define PREFIX_ERR_UNKNOWNCOMMAND ":ft_irc 421 "
 # define ERR_UNKNOWNCOMMAND " :Unknown command"
 # define PREFIX_ERR_NONICKNAMEGIVEN ":ft_irc 431 "
@@ -31,6 +41,7 @@
 # include <poll.h>
 # include <cstdlib>
 # include <vector>
+# include <map>
 # include <fstream>
 
 std::vector<std::string> split(const std::string &str, char delim);

@@ -13,9 +13,12 @@ struct Client
     std::string hostname;
     std::string servername;
 	std::string realname;
+    std::string buffer;
 	
-	Client(int clientFd = -1);
-	~Client();
+	Client(int clientFd = -1) : fd(clientFd), authenticated(false) { }
+	~Client() { }
+
+    std::string getInfo() const;
 };
 
 #endif

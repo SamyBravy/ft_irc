@@ -79,25 +79,40 @@ void Server::listenClients()
 					int n = recv(fds[i].fd, message, sizeof(message) - 1, 0);
 					if (n > 0)
 					{
-						message[n] = '\0';
-                        std::string messageStr(message);
+                        message[n] = '\0';
+                        if (message[n - 1] != '\n')
+                        {
+                            _clients[i - 1].buffer += message;
+                            continue;
+                        }
+                        std::string messageStr(_clients[i - 1].buffer + message);
+                        messageStr.erase(messageStr.size() - 1);
+                        _clients[i - 1].buffer.clear();
                         
                         messageStr.erase(std::remove(messageStr.begin(), messageStr.end(), '\r'), messageStr.end());
-                        if (messageStr.empty() || messageStr == "\n")
+                        if (messageStr.empty())
                             continue;
                         printLog("clientMessages.txt", messageStr);
-                        std::cout << "Received message from client " << fds[i].fd << ": \"" << messageStr.substr(0, messageStr.size() - 1) << "\"" << std::endl;
-						handleMessage(messageStr, i - 1);
+                        if (_clients[i - 1].nickname.empty())
+                            std::cout << "Client " << fds[i].fd << ": \"" << messageStr << "\"" << std::endl;
+						else
+                            std::cout << _clients[i - 1].nickname << ": \"" << messageStr << "\"" << std::endl;
+                        handleMessage(messageStr, i - 1);
 					}
 					else if (n == 0)
 					{
-						std::cout << "Client " << fds[i].fd << " disconnected" << std::endl;
+                        if (_clients[i - 1].nickname.empty())
+						    std::cout << "Client " << fds[i].fd << " disconnected" << std::endl;
+                        else
+                            std::cout << _clients[i - 1].nickname << " disconnected" << std::endl;
 						removeClient(i - 1);
 					}
 					else
 					{
-						std::cerr << "Error receiving data from client " << fds[i].fd << std::endl;
-						removeClient(i - 1);
+                        if (_clients[i - 1].nickname.empty())
+						    std::cerr << "Error receiving data from client " << fds[i].fd << std::endl;
+                        else
+                            std::cerr << "Error receiving data from " << _clients[i - 1].nickname << std::endl;
 					}
 				}
 			}
@@ -205,12 +220,109 @@ void Server::userCommand(const std::string &message, Client &client)
     }
 }
 
-void Server::pingCommand(const std::string &message, Client &client)
+void Server::pingCommand(const std::string &message, Client &client) const
 {
     if (countWords(message) < 2)
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " PING" + ERR_NEEDMOREPARAMS);
     else
         sendMsg(client.fd, std::string(":ft_irc ") + " PONG ft_irc " + getWord(message, 1));
+}
+
+void Server::sendWelcomeMessage(const Client &client) const
+{
+    sendMsg(client.fd, ":ft_irc 001 " + client.nickname + " :Welcome to the Manicomio Network, "
+        + client.nickname + "!" + client.username + "@" + client.hostname);
+    sendMsg(client.fd, ":ft_irc 002 " + client.nickname + " :Your host is ft_irc, running version 1.0");
+    sendMsg(client.fd, ":ft_irc 003 " + client.nickname + " :This server was created "
+        + getDay(_creationMoment) + ", " + getDate(_creationMoment) + " at " + getTime(_creationMoment));
+    sendMsg(client.fd, ":ft_irc 004 " + client.nickname + " " + client.servername + " 1.0 uMode:none cMode:+i,+t,+k,+o,+l");
+    sendMsg(client.fd, ":ft_irc 375 " + client.nickname + " :- Welcome to the Manicomio");
+    sendMsg(client.fd, ":ft_irc 372 " + client.nickname + " :- Eat my Desktop Background");
+    sendMsg(client.fd, ":ft_irc 376 " + client.nickname + " :- End of /MOTD command");
+}
+
+void Server::capCommand(const std::string &message, Client &client) const
+{
+    if (countWords(message) < 2)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " CAP" + ERR_NEEDMOREPARAMS);
+    else if (message == "CAP LS 302")
+    {
+        std::string capabilities = "";
+        sendMsg(client.fd, "CAP * LS :" + capabilities);
+    }
+}
+
+void Server::whoCommand(const std::string &message, Client &client)
+{
+    std::string name = getWord(message, 1);
+
+    if (countWords(message) < 2)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " WHO" + ERR_NEEDMOREPARAMS);
+    else if (!clientExists(name) && !channelExists(name))
+        sendMsg(client.fd, PREFIX_ERR_NOSUCHNICK + client.nickname + " " + name + ERR_NOSUCHNICK);
+    else
+    {
+        if (clientExists(name))
+            sendMsg(client.fd, ":ft_irc 352 " + client.nickname + " * " + getClient(name).getInfo());
+        else
+        {
+            std::vector<Client *> channelClients = _channels[name].getClients();
+            for (size_t i = 0; i < channelClients.size(); i++)
+                sendMsg(client.fd, ":ft_irc 352 " + client.nickname + " " + name + " " + channelClients[i]->getInfo());
+        }
+        sendMsg(client.fd, ":ft_irc 315 " + client.nickname + " " + name + " :End of /WHO list");
+    }
+}
+
+void Server::joinCommand(const std::string &message, Client &client)
+{
+    std::string channelName = getWord(message, 1);
+
+    if (countWords(message) < 2)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " JOIN" + ERR_NEEDMOREPARAMS);
+    else if (channelName[0] != '#' && channelName[0] != '&')
+        sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + channelName + ERR_NOSUCHCHANNEL);
+    else if (!channelExists(channelName))
+    {
+        _channels[channelName] = Channel(this, channelName);
+        sendMsg(client.fd, ":" + client.nickname + "!ft_irc@" + _ip + " JOIN :" + channelName);
+    }
+}
+
+void Server::privmsgCommand(const std::string &message, Client &client)
+{
+    if (countWords(message) < 2)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " PRIVMSG" + ERR_NEEDMOREPARAMS);
+    else if (getWord(message, 1).find_first_of(":") == 0)
+        sendMsg(client.fd, PREFIX_ERR_NORECIPIENT + client.nickname + " PRIVMSG" + ERR_NORECIPIENT);
+    else if (message.find_first_of(":") == std::string::npos)
+        sendMsg(client.fd, PREFIX_ERR_NOTEXTTOSEND + client.nickname + " PRIVMSG" + ERR_NOTEXTTOSEND);
+    else
+    {
+        std::stringstream ss(message);
+        std::string target;
+        ss >> target;
+        while (ss >> target && target[0] != ':')
+        {
+            if (!clientExists(target) && !channelExists(target))
+                sendMsg(client.fd, PREFIX_ERR_NOSUCHNICK + client.nickname + " " + target + ERR_NOSUCHNICK);
+            else
+            {
+                std::string toSendMsg = ":" + client.nickname + "!" + client.username + "@" + client.hostname + " PRIVMSG "
+                    + target + " " + message.substr(message.find_first_of(":"));
+                if (clientExists(target))
+                    sendMsg(getClient(target).fd, toSendMsg);
+                else
+                {
+                    if (_channels[target].userExists(client.nickname) == false)
+                        sendMsg(client.fd, PREFIX_ERR_CANNOTSENDTOCHAN + client.nickname + " " + target + ERR_CANNOTSENDTOCHAN);
+                    else
+                        _channels[target].sendMsg(toSendMsg);
+                }
+            }
+        }
+    }
+    
 }
 
 void Server::handleMessage(std::string message, int iClient)
@@ -231,13 +343,7 @@ void Server::handleMessage(std::string message, int iClient)
             std::string command = getWord(tokens[i], 0);
 
             if (command == "CAP")
-            {
-                if (tokens[i] == "CAP LS 302")
-                {
-                    std::string capabilities = "";
-                    sendMsg(client.fd, "CAP * LS :" + capabilities);
-                }
-            }
+                capCommand(tokens[i], client);
             else if (command == "PASS" && client.password.empty())
                 passCommand(tokens[i], client);
             else if (client.password.empty())
@@ -254,13 +360,7 @@ void Server::handleMessage(std::string message, int iClient)
             if (!client.password.empty() && !client.nickname.empty() && !client.username.empty())
             {
                 client.authenticated = true;
-                sendMsg(client.fd, ":ft_irc 001 " + client.nickname + " :Welcome to the Manicomio Network, " + client.nickname + "!" + client.username + "@" + client.hostname);
-                sendMsg(client.fd, ":ft_irc 002 " + client.nickname + " :Your host is ft_irc, running version 1.0");
-                sendMsg(client.fd, ":ft_irc 003 " + client.nickname + " :This server was created " + getDay(_creationMoment) + ", " + getDate(_creationMoment) + " at " + getTime(_creationMoment));
-                sendMsg(client.fd, ":ft_irc 004 " + client.nickname + " " + client.servername + " 1.0 uMode:none cMode:+i,+t,+k,+o");
-                sendMsg(client.fd, ":ft_irc 375 " + client.nickname + " :- Welcome to the Manicomio");
-                sendMsg(client.fd, ":ft_irc 372 " + client.nickname + " :- Eat my Desktop Background");
-                sendMsg(client.fd, ":ft_irc 376 " + client.nickname + " :- End of MOTD command");
+                sendWelcomeMessage(client);
                 break;
             }
         }
@@ -270,13 +370,20 @@ void Server::handleMessage(std::string message, int iClient)
 
     std::string command = getWord(message, 0);
 
-    if (command == "CAP") { }
+    if (command == "CAP")
+        capCommand(message, client);
     else if (command == "PASS" || command == "USER")
         sendMsg(client.fd, PREFIX_ERR_ALREADYREGISTRED + client.nickname + ERR_ALREADYREGISTRED);
     else if (command == "NICK")
         nickCommand(message, client);
     else if (command == "PING")
         pingCommand(message, client);
+    else if (command == "WHO")
+        whoCommand(message, client);
+    else if (command == "JOIN")
+        joinCommand(message, client);
+    else if (command == "PRIVMSG")
+        privmsgCommand(message, client);
     else
         sendMsg(client.fd, PREFIX_ERR_UNKNOWNCOMMAND + client.nickname + " " + command + ERR_UNKNOWNCOMMAND);
 }
@@ -328,6 +435,21 @@ bool Server::clientExists(const std::string &nickname) const
             return true;
     }
     return false;
+}
+
+Client &Server::getClient(const std::string nickname)
+{
+    for (size_t i = 0; i < _clients.size(); i++)
+    {
+        if (_clients[i].nickname == nickname)
+            return _clients[i];
+    }
+    throw ServerException("Error: client not found");
+}
+
+bool Server::channelExists(const std::string &channelName) const
+{
+    return _channels.find(channelName) != _channels.end();
 }
 
 Server::ServerException::ServerException(const char *msg) : _msg(msg) { }

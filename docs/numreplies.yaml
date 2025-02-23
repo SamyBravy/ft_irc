@@ -28,7 +28,7 @@
 
 ERROR_REPLIES:
   401:
-    name: ERR_NOSUCKNICK
+    name: ERR_NOSUCHNICK
     reply: <nickname> :No such nick/channel
     desc: >
       Used to indicate the nickname parameter supplied to a command is
