@@ -38,8 +38,6 @@ void Server::sendMsg(int fd, std::string msg) const
     }
     else if (send(fd, msg.c_str(), msg.size(), 0) == -1)
         std::cerr << "Error sending message" << std::endl;
-    
-    printLog("serverMessages.txt", msg);
 }
 
 void Server::listenClients()
@@ -92,7 +90,6 @@ void Server::listenClients()
                         messageStr.erase(std::remove(messageStr.begin(), messageStr.end(), '\r'), messageStr.end());
                         if (messageStr.empty())
                             continue;
-                        printLog("clientMessages.txt", messageStr);
                         if (_clients[i - 1].nickname.empty())
                             std::cout << "Client " << fds[i].fd << ": \"" << messageStr << "\"" << std::endl;
 						else
@@ -157,7 +154,9 @@ void Server::removeClient(int i)
 {
     if (i < 0 || i >= (int)_clients.size())
         throw ServerException("Error: invalid client index");
-        
+    
+    for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); it++)
+        it->second.removeClient(_clients[i].nickname);
     if (_clients[i].fd != -1)
     {
         close(_clients[i].fd);
@@ -196,7 +195,7 @@ void Server::nickCommand(const std::string &message, Client &client)
     {
         if (client.authenticated == true)
             sendMsg(-1, ":" + client.nickname + "!" + client.username + "@" + client.hostname + " NICK :" + nick);
-        client.nickname = nick;
+        client.setNickname(nick);
     }
 }
 
@@ -263,7 +262,8 @@ void Server::whoCommand(const std::string &message, Client &client)
     else
     {
         if (clientExists(name))
-            sendMsg(client.fd, ":ft_irc 352 " + client.nickname + " * " + getClient(name).getInfo());
+            sendMsg(client.fd, ":ft_irc 352 " + client.nickname
+                    + (client.channels.size() > 0 ? " " + client.channels[0]->getName()  : " * ") + getClient(name).getInfo()); 
         else
         {
             std::vector<Client *> channelClients = _channels[name].getClients();
@@ -282,10 +282,47 @@ void Server::joinCommand(const std::string &message, Client &client)
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " JOIN" + ERR_NEEDMOREPARAMS);
     else if (channelName[0] != '#' && channelName[0] != '&')
         sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + channelName + ERR_NOSUCHCHANNEL);
-    else if (!channelExists(channelName))
+    else
     {
-        _channels[channelName] = Channel(this, channelName);
-        sendMsg(client.fd, ":" + client.nickname + "!ft_irc@" + _ip + " JOIN :" + channelName);
+        std::vector<std::string> channelsStr;
+        std::vector<std::string> keysStr;
+        std::stringstream ss(message);
+        std::string token;
+        ss >> token;
+        while (ss >> token && token.find_first_of("#&") == 0)
+            channelsStr.push_back(token);
+        while (ss >> token)
+            keysStr.push_back(token);
+        
+        for (size_t i = 0; i < channelsStr.size(); i++)
+        {
+            channelName = channelsStr[i];
+            if (channelExists(channelName) && _channels[channelName].getLimit()
+                && _channels[channelName].getUsersSize() >= _channels[channelName].getLimit())
+                sendMsg(client.fd, PREFIX_ERR_CHANNELISFULL + client.nickname + " " + channelName + ERR_CHANNELISFULL);
+            else if (channelExists(channelName) && !_channels[channelName].isInvited(client.nickname))
+                sendMsg(client.fd, PREFIX_ERR_INVITEONLYCHAN + client.nickname + " " + channelName + ERR_INVITEONLYCHAN);
+            else if (channelExists(channelName) && keysStr.size() > i && !_channels[channelName].passMatch(keysStr[i]))
+                sendMsg(client.fd, PREFIX_ERR_BADCHANNELKEY + client.nickname + " " + channelName + ERR_BADCHANNELKEY);
+            else
+            {
+                if(!channelExists(channelName))
+                {
+                    _channels[channelName] = Channel(this, channelName);
+                    client.joinChannel(&_channels[channelName], true);
+                    sendMsg(client.fd, ":" + client.nickname + "!ft_irc" + "@" + _ip + " JOIN " + channelName);
+                }
+                else
+                {
+                    client.joinChannel(&_channels[channelName]);
+                    _channels[channelName].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname + " JOIN " + channelName);
+                    sendMsg(client.fd, ":ft_irc 324 " + client.nickname + " " + channelName + " " + _channels[channelName].getMode());
+                    sendMsg(client.fd, ":ft_irc 331 " + client.nickname + " " + channelName + " :" + _channels[channelName].getTopic());
+                }
+                sendMsg(client.fd, ":ft_irc 353 " + client.nickname + " = " + channelName + " :" + _channels[channelName].getNames());
+                sendMsg(client.fd, ":ft_irc 366 " + client.nickname + " " + channelName + " :End of /NAMES list");
+            }
+        }
     }
 }
 
@@ -317,12 +354,29 @@ void Server::privmsgCommand(const std::string &message, Client &client)
                     if (_channels[target].userExists(client.nickname) == false)
                         sendMsg(client.fd, PREFIX_ERR_CANNOTSENDTOCHAN + client.nickname + " " + target + ERR_CANNOTSENDTOCHAN);
                     else
-                        _channels[target].sendMsg(toSendMsg);
+                        _channels[target].sendMsg(toSendMsg, client.nickname);
                 }
             }
         }
     }
     
+}
+
+void Server::modeCommand(const std::string &message, Client &client)
+{
+    std::string target = getWord(message, 1);
+
+    if (countWords(message) < 2)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " MODE" + ERR_NEEDMOREPARAMS);
+    else if (countWords(message) == 2)
+    {
+        if (channelExists(target))
+            sendMsg(client.fd, ":ft_irc 324 " + client.nickname + " " + target + " " + _channels[target].getMode());
+        else if (target.find_first_of("#&") == 0)
+            sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + target + ERR_NOSUCHCHANNEL);
+        else if (!clientExists(target))
+            sendMsg(client.fd, PREFIX_ERR_NOSUCHNICK + client.nickname + " " + target + ERR_NOSUCHNICK);
+    }
 }
 
 void Server::handleMessage(std::string message, int iClient)
@@ -384,6 +438,8 @@ void Server::handleMessage(std::string message, int iClient)
         joinCommand(message, client);
     else if (command == "PRIVMSG")
         privmsgCommand(message, client);
+    else if (command == "MODE")
+        modeCommand(message, client);
     else
         sendMsg(client.fd, PREFIX_ERR_UNKNOWNCOMMAND + client.nickname + " " + command + ERR_UNKNOWNCOMMAND);
 }

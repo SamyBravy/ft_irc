@@ -29,6 +29,12 @@
 # define ERR_ALREADYREGISTRED " :You may not reregister"
 # define PREFIX_ERR_PASSWDMISMATCH ":ft_irc 464 "
 # define ERR_PASSWDMISMATCH " :Password incorrect"
+# define PREFIX_ERR_CHANNELISFULL ":ft_irc 471 "
+# define ERR_CHANNELISFULL " :Cannot join channel (+l)"
+# define PREFIX_ERR_INVITEONLYCHAN ":ft_irc 473 "
+# define ERR_INVITEONLYCHAN " :Cannot join channel (+i)"
+# define PREFIX_ERR_BADCHANNELKEY ":ft_irc 475 "
+# define ERR_BADCHANNELKEY " :Cannot join channel (+k)"
 
 # include <cstring>
 # include <iostream>
@@ -42,10 +48,10 @@
 # include <cstdlib>
 # include <vector>
 # include <map>
+# include <set>
 # include <fstream>
 
 std::vector<std::string> split(const std::string &str, char delim);
-void printLog(const std::string &filename, std::string msg);
 int countWords(const std::string &str);
 std::string getWord(const std::string &str, int n);
 std::string getDay(time_t t);

@@ -2,6 +2,9 @@
 # define CLIENT_HPP
 
 # include "ft_irc.hpp"
+# include "Channel.hpp"
+
+class Channel;
 
 struct Client
 {
@@ -14,9 +17,14 @@ struct Client
     std::string servername;
 	std::string realname;
     std::string buffer;
+    std::vector <Channel *> channels;
 	
-	Client(int clientFd = -1) : fd(clientFd), authenticated(false) { }
+	Client(int clientFd = -1);
 	~Client() { }
+
+    void setNickname(const std::string &nick);
+    void joinChannel(Channel *channel, bool isOperator = false);
+    void leaveChannel(Channel *channel);
 
     std::string getInfo() const;
 };

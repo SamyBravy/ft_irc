@@ -6,6 +6,7 @@
 # include "ft_irc.hpp"
 
 class Channel;
+class Client;
 
 class Server
 {	
@@ -38,6 +39,7 @@ class Server
         void whoCommand(const std::string &message, Client &client);
         void joinCommand(const std::string &message, Client &client);
         void privmsgCommand(const std::string &message, Client &client);
+        void modeCommand(const std::string &message, Client &client);
         
 	public:
 		Server(int port = 8080, const std::string &password = "password");

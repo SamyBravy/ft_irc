@@ -3,10 +3,7 @@
 
 int main(int argc, char *argv[])
 {
-    remove("serverMessages.txt");
-    remove("clientMessages.txt");
-
-	if (argc != 3)
+    if (argc != 3)
 	{
 		std::cerr << "Error: usage: " << argv[0] << " <port> <password>" << std::endl;
 		return 1;
@@ -51,15 +48,6 @@ std::vector<std::string> split(const std::string &str, char delim)
     return tokens;
 }
 
-void printLog(const std::string &filename, std::string msg)
-{
-    std::ofstream file(filename.c_str(), std::ios_base::app);
-
-    file << msg << std::endl;
-
-    file.close();
-}
-
 int countWords(const std::string &str)
 {
     std::stringstream ss(str);
@@ -68,7 +56,7 @@ int countWords(const std::string &str)
 
     while (ss >> word)
         count++;
-        
+
     return count;
 }
 
