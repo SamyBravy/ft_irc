@@ -7,6 +7,16 @@ std::string Client::getInfo() const
     return (username + " " + hostname + " " + servername + " " + nickname + " H :0 " + realname);
 }
 
+bool Client::isInAChannelWith(const std::string &nickname) const
+{
+    for (std::vector<Channel *>::const_iterator it = channels.begin(); it != channels.end(); it++)
+    {
+        if ((*it)->userExists(nickname))
+            return true;
+    }
+    return false;
+}
+
 void Client::setNickname(const std::string &nick)
 {
     for (std::vector<Channel *>::iterator it = channels.begin(); it != channels.end(); it++)

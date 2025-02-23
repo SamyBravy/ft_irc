@@ -21,7 +21,7 @@ class Server
 
 
         void addClient(int client_fd);
-        void removeClient(int i);
+        void removeClient(Client *client);
         struct pollfd *getPollfds() const;
         
 		void createSocket();
@@ -40,6 +40,8 @@ class Server
         void joinCommand(const std::string &message, Client &client);
         void privmsgCommand(const std::string &message, Client &client);
         void modeCommand(const std::string &message, Client &client);
+        void quitCommand(const std::string &message, Client &client);
+        void partCommand(const std::string &message, Client &client);
         
 	public:
 		Server(int port = 8080, const std::string &password = "password");

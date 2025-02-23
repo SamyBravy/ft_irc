@@ -97,13 +97,7 @@ void Server::listenClients()
                         handleMessage(messageStr, i - 1);
 					}
 					else if (n == 0)
-					{
-                        if (_clients[i - 1].nickname.empty())
-						    std::cout << "Client " << fds[i].fd << " disconnected" << std::endl;
-                        else
-                            std::cout << _clients[i - 1].nickname << " disconnected" << std::endl;
-						removeClient(i - 1);
-					}
+						quitCommand("QUIT", _clients[i - 1]);
 					else
 					{
                         if (_clients[i - 1].nickname.empty())
@@ -150,18 +144,25 @@ void Server::addClient(int client_fd)
 	_clients.push_back(Client(client_fd));
 }
 
-void Server::removeClient(int i)
+void Server::removeClient(Client *client)
 {
-    if (i < 0 || i >= (int)_clients.size())
-        throw ServerException("Error: invalid client index");
-    
+    if (client == NULL)
+        throw ServerException("Error: invalid client");
+
     for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); it++)
-        it->second.removeClient(_clients[i].nickname);
-    if (_clients[i].fd != -1)
+        it->second.removeClient(client->nickname);
+    if (client->fd != -1)
     {
-        close(_clients[i].fd);
+        close(client->fd);
     }
-	_clients.erase(_clients.begin() + i);
+    for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); it++)
+    {
+        if (&(*it) == client)
+        {
+            _clients.erase(it);
+            break;
+        }
+    }
 }
 
 void Server::passCommand(const std::string &message, Client &client)
@@ -276,33 +277,24 @@ void Server::whoCommand(const std::string &message, Client &client)
 
 void Server::joinCommand(const std::string &message, Client &client)
 {
-    std::string channelName = getWord(message, 1);
-
     if (countWords(message) < 2)
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " JOIN" + ERR_NEEDMOREPARAMS);
-    else if (channelName[0] != '#' && channelName[0] != '&')
-        sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + channelName + ERR_NOSUCHCHANNEL);
     else
     {
-        std::vector<std::string> channelsStr;
-        std::vector<std::string> keysStr;
-        std::stringstream ss(message);
-        std::string token;
-        ss >> token;
-        while (ss >> token && token.find_first_of("#&") == 0)
-            channelsStr.push_back(token);
-        while (ss >> token)
-            keysStr.push_back(token);
-        
-        for (size_t i = 0; i < channelsStr.size(); i++)
+        std::vector<std::string> channelNames = split(getWord(message, 1), ',');
+        std::vector<std::string> keys = split(getWord(message, 2), ',');
+
+        for (size_t i = 0; i < channelNames.size(); i++)
         {
-            channelName = channelsStr[i];
-            if (channelExists(channelName) && _channels[channelName].getLimit()
+            std::string channelName = channelNames[i];
+            if (channelName[0] != '#' && channelName[0] != '&')
+                sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + channelName + ERR_NOSUCHCHANNEL);
+            else if (channelExists(channelName) && _channels[channelName].getLimit()
                 && _channels[channelName].getUsersSize() >= _channels[channelName].getLimit())
                 sendMsg(client.fd, PREFIX_ERR_CHANNELISFULL + client.nickname + " " + channelName + ERR_CHANNELISFULL);
             else if (channelExists(channelName) && !_channels[channelName].isInvited(client.nickname))
                 sendMsg(client.fd, PREFIX_ERR_INVITEONLYCHAN + client.nickname + " " + channelName + ERR_INVITEONLYCHAN);
-            else if (channelExists(channelName) && keysStr.size() > i && !_channels[channelName].passMatch(keysStr[i]))
+            else if (channelExists(channelName) && keys.size() > i && !_channels[channelName].passMatch(keys[i]))
                 sendMsg(client.fd, PREFIX_ERR_BADCHANNELKEY + client.nickname + " " + channelName + ERR_BADCHANNELKEY);
             else
             {
@@ -336,11 +328,10 @@ void Server::privmsgCommand(const std::string &message, Client &client)
         sendMsg(client.fd, PREFIX_ERR_NOTEXTTOSEND + client.nickname + " PRIVMSG" + ERR_NOTEXTTOSEND);
     else
     {
-        std::stringstream ss(message);
-        std::string target;
-        ss >> target;
-        while (ss >> target && target[0] != ':')
+        std::vector<std::string> targets = split(getWord(message, 1), ',');
+        for (size_t i = 0; i < targets.size(); i++)
         {
+            std::string target = targets[i];
             if (!clientExists(target) && !channelExists(target))
                 sendMsg(client.fd, PREFIX_ERR_NOSUCHNICK + client.nickname + " " + target + ERR_NOSUCHNICK);
             else
@@ -376,6 +367,59 @@ void Server::modeCommand(const std::string &message, Client &client)
             sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + target + ERR_NOSUCHCHANNEL);
         else if (!clientExists(target))
             sendMsg(client.fd, PREFIX_ERR_NOSUCHNICK + client.nickname + " " + target + ERR_NOSUCHNICK);
+    }
+}
+
+void Server::quitCommand(const std::string &message, Client &client)
+{
+    if (client.nickname.empty())
+        std::cout << "Client " << client.fd << " disconnected" << std::endl;
+    else
+        std::cout << client.nickname << " disconnected" << std::endl;
+
+    std::string reason;
+    if (countWords(message) > 1 && message.find_first_of(":") != std::string::npos)
+        reason = message.substr(message.find_first_of(":") + 1);
+    else
+        reason = "Reason not specified";
+
+    for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); it++)
+    {
+        if (it->nickname != client.nickname && client.isInAChannelWith(it->nickname))
+            sendMsg(it->fd, ":" + client.nickname + "!" + client.username + "@" + client.hostname + " QUIT :" + reason);
+    }
+    removeClient(&client);
+}
+
+void Server::partCommand(const std::string &message, Client &client)
+{
+    if (countWords(message) < 2)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " PART" + ERR_NEEDMOREPARAMS);
+    else
+    {
+        std::vector<std::string> channelNames = split(getWord(message, 1), ',');
+        std::string reason;
+        if (countWords(message) > 2 && message.find_first_of(":") != std::string::npos)
+            reason = message.substr(message.find_first_of(":") + 1);
+        else
+            reason = "Reason not specified";
+        
+        for (size_t i = 0; i < channelNames.size(); i++)
+        {
+            if (!channelExists(channelNames[i]))
+                sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + channelNames[i] + ERR_NOSUCHCHANNEL);
+            else if (!_channels[channelNames[i]].userExists(client.nickname))
+                sendMsg(client.fd, PREFIX_ERR_NOTONCHANNEL + client.nickname + " " + channelNames[i] + ERR_NOTONCHANNEL);
+            else
+            {
+                for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); it++)
+                {
+                    if (it->nickname == client.nickname || client.isInAChannelWith(it->nickname))
+                        sendMsg(it->fd, ":" + client.nickname + "!" + client.username + "@" + client.hostname + " PART " + channelNames[i] + " :" + reason);
+                }
+                client.leaveChannel(&_channels[channelNames[i]]);
+            }
+        }
     }
 }
 
@@ -440,6 +484,10 @@ void Server::handleMessage(std::string message, int iClient)
         privmsgCommand(message, client);
     else if (command == "MODE")
         modeCommand(message, client);
+    else if (command == "QUIT")
+        quitCommand(message, client);
+    else if (command == "PART")
+        partCommand(message, client);
     else
         sendMsg(client.fd, PREFIX_ERR_UNKNOWNCOMMAND + client.nickname + " " + command + ERR_UNKNOWNCOMMAND);
 }

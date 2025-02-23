@@ -23,6 +23,8 @@
 # define ERR_ERRONEUSNICKNAME " :Erroneous nickname"
 # define PREFIX_ERR_NICKNAMEINUSE ":ft_irc 433 "
 # define ERR_NICKNAMEINUSE " :Nickname is already in use"
+# define PREFIX_ERR_NOTONCHANNEL ":ft_irc 442 "
+# define ERR_NOTONCHANNEL " :You're not on that channel"
 # define PREFIX_ERR_NEEDMOREPARAMS ":ft_irc 461 "
 # define ERR_NEEDMOREPARAMS " :Not enough parameters"
 # define PREFIX_ERR_ALREADYREGISTRED ":ft_irc 462 "

@@ -26,6 +26,8 @@ struct Client
     void joinChannel(Channel *channel, bool isOperator = false);
     void leaveChannel(Channel *channel);
 
+    bool isInAChannelWith(const std::string &nickname) const;
+
     std::string getInfo() const;
 };
 
