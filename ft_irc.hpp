@@ -27,6 +27,8 @@
 # define ERR_USERNOTINCHANNEL " :They aren't on that channel"
 # define PREFIX_ERR_NOTONCHANNEL ":ft_irc 442 "
 # define ERR_NOTONCHANNEL " :You're not on that channel"
+# define PREFIX_ERR_USERONCHANNEL ":ft_irc 443 "
+# define ERR_USERONCHANNEL " :is already on channel"
 # define PREFIX_ERR_NEEDMOREPARAMS ":ft_irc 461 "
 # define ERR_NEEDMOREPARAMS " :Not enough parameters"
 # define PREFIX_ERR_ALREADYREGISTRED ":ft_irc 462 "
@@ -63,6 +65,7 @@ std::string getWord(const std::string &str, int n);
 std::string getDay(time_t t);
 std::string getDate(time_t t);
 std::string getTime(time_t t);
+std::string getMoment(time_t t);
 
 template <typename T>
 T strToNum(const std::string &str)

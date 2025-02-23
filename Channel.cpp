@@ -1,7 +1,7 @@
 #include "Channel.hpp"
 
 Channel::Channel(Server *server, const std::string &name) : _server(server), _name(name),
-                                                                _limit(0), _inviteOnly(false), _topicProtected(false) { }
+                                                                _limit(0), _topicProtected(false), _inviteOnly(false) { }
 
 std::vector<Client *> Channel::getClients() const
 {
@@ -43,6 +43,8 @@ void Channel::updateNick(const std::string &oldNick, const std::string &newNick)
         _invited.erase(oldNick);
         _invited.insert(newNick);
     }
+    if (_topic.author == oldNick)
+        _topic.author = newNick;
 }
 
 void Channel::setInviteOnly(bool inviteOnly)
@@ -76,6 +78,11 @@ void Channel::addClient(Client *client, bool isOperator)
         _invited.erase(client->nickname);
 }
 
+void Channel::addInvited(const std::string &nickname)
+{
+    _invited.insert(nickname);
+}
+
 void Channel::removeClient(const std::string &nickname)
 {
     _users.erase(nickname);
@@ -90,13 +97,6 @@ std::string Channel::getMode() const
     return std::string("+") + (_inviteOnly ? "i" : "") + (_topicProtected ? "t" : "") + (!_password.empty() ? "k" : "") + (_limit ? "l" : "");
 }
 
-std::string Channel::getTopic() const
-{
-    if (_topic.empty())
-        return "No topic is set";
-    return _topic;
-}
-
 std::string Channel::getNames() const
 {
     std::string names;
@@ -109,4 +109,13 @@ std::string Channel::getNames() const
     }
 
     return names;
+}
+
+std::string Channel::getTopicTime() const
+{
+    std::ostringstream oss;
+
+    oss << _topic.time;
+    
+    return oss.str();
 }

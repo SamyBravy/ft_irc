@@ -19,9 +19,9 @@ class Server
 		std::map<std::string, Channel> _channels;
         time_t _creationMoment;
 
-
         void addClient(int client_fd);
         void removeClient(Client *client);
+        void removeEmptyChannels();
         struct pollfd *getPollfds() const;
         
 		void createSocket();
@@ -31,11 +31,12 @@ class Server
         
         void sendWelcomeMessage(const Client &client) const;
         void handleMessage(std::string message, int i);
-        void capCommand(const std::string &message, Client &client) const;
+
+        void capCommand(const std::string &message, Client &client);
         void passCommand(const std::string &message, Client &client);
         void nickCommand(const std::string &message, Client &client);
         void userCommand(const std::string &message, Client &client);
-        void pingCommand(const std::string &message, Client &client) const;
+        void pingCommand(const std::string &message, Client &client);
         void whoCommand(const std::string &message, Client &client);
         void joinCommand(const std::string &message, Client &client);
         void privmsgCommand(const std::string &message, Client &client);
@@ -43,11 +44,16 @@ class Server
         void quitCommand(const std::string &message, Client &client);
         void partCommand(const std::string &message, Client &client);
         void kickCommand(const std::string &message, Client &client);
+        void inviteCommand(const std::string &message, Client &client);
+        void topicCommand(const std::string &message, Client &client);
+
+        std::map<std::string, void (Server::*)(const std::string &, Client &)> _commands;
         
 	public:
-		Server(int port = 8080, const std::string &password = "password");
-		~Server();
-        
+        Server(int port = 8080, const std::string &password = "password");
+        ~Server();
+    
+        void initCommands();
 		void run();
         void listenClients();
 

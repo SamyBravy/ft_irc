@@ -1,17 +1,38 @@
 #include "Server.hpp"
 
-Server::Server(int port, const std::string &password) : _fd(-1), _port(port), _password(password) { }
+Server::Server(int port, const std::string &password) : _fd(-1), _port(port), _password(password)
+{
+    initCommands();
+}
 
 Server::~Server()
 {
-	if (_fd != -1)
-		close(_fd);
+    if (_fd != -1)
+    close(_fd);
 	
 	for (size_t i = 0; i < _clients.size(); i++)
 	{
-		if (_clients[i].fd != -1)
-			close(_clients[i].fd);
+        if (_clients[i].fd != -1)
+        close(_clients[i].fd);
 	}
+}
+
+void Server::initCommands()
+{
+    _commands["CAP"] = &Server::capCommand;
+    _commands["PASS"] = &Server::passCommand;
+    _commands["NICK"] = &Server::nickCommand;
+    _commands["USER"] = &Server::userCommand;
+    _commands["PING"] = &Server::pingCommand;
+    _commands["WHO"] = &Server::whoCommand;
+    _commands["JOIN"] = &Server::joinCommand;
+    _commands["PRIVMSG"] = &Server::privmsgCommand;
+    _commands["MODE"] = &Server::modeCommand;
+    _commands["QUIT"] = &Server::quitCommand;
+    _commands["PART"] = &Server::partCommand;
+    _commands["KICK"] = &Server::kickCommand;
+    _commands["INVITE"] = &Server::inviteCommand;
+    _commands["TOPIC"] = &Server::topicCommand;
 }
 
 void Server::run()
@@ -88,7 +109,7 @@ void Server::listenClients()
                         _clients[i - 1].buffer.clear();
                         
                         messageStr.erase(std::remove(messageStr.begin(), messageStr.end(), '\r'), messageStr.end());
-                        if (!messageStr.empty() && messageStr[messageStr.size() - 1] == '\n')
+                        if (!messageStr.empty() && messageStr[messageStr.size() - 1] == ' ')
                             messageStr.erase(messageStr.size() - 1);                         
                         if (messageStr.empty())
                             continue;
@@ -222,12 +243,12 @@ void Server::userCommand(const std::string &message, Client &client)
     }
 }
 
-void Server::pingCommand(const std::string &message, Client &client) const
+void Server::pingCommand(const std::string &message, Client &client)
 {
     if (countWords(message) < 2)
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " PING" + ERR_NEEDMOREPARAMS);
     else
-        sendMsg(client.fd, ":ft_irc PONG " + client.nickname + " " + getWord(message, 1));
+        sendMsg(client.fd, std::string(":ft_irc ") + " PONG ft_irc " + getWord(message, 1));
 }
 
 void Server::sendWelcomeMessage(const Client &client) const
@@ -235,15 +256,14 @@ void Server::sendWelcomeMessage(const Client &client) const
     sendMsg(client.fd, ":ft_irc 001 " + client.nickname + " :Welcome to the Manicomio Network, "
         + client.nickname + "!" + client.username + "@" + client.hostname);
     sendMsg(client.fd, ":ft_irc 002 " + client.nickname + " :Your host is ft_irc, running version 1.0");
-    sendMsg(client.fd, ":ft_irc 003 " + client.nickname + " :This server was created "
-        + getDay(_creationMoment) + ", " + getDate(_creationMoment) + " at " + getTime(_creationMoment));
+    sendMsg(client.fd, ":ft_irc 003 " + client.nickname + " :This server was created " + getMoment(_creationMoment));
     sendMsg(client.fd, ":ft_irc 004 " + client.nickname + " " + client.servername + " 1.0 uMode:none cMode:+i,+t,+k,+o,+l");
     sendMsg(client.fd, ":ft_irc 375 " + client.nickname + " :- Welcome to the Manicomio");
     sendMsg(client.fd, ":ft_irc 372 " + client.nickname + " :- Eat my Desktop Background");
     sendMsg(client.fd, ":ft_irc 376 " + client.nickname + " :- End of /MOTD command");
 }
 
-void Server::capCommand(const std::string &message, Client &client) const
+void Server::capCommand(const std::string &message, Client &client)
 {
     if (countWords(message) < 2)
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " CAP" + ERR_NEEDMOREPARAMS);
@@ -303,6 +323,7 @@ void Server::joinCommand(const std::string &message, Client &client)
                 if(!channelExists(channelName))
                 {
                     _channels[channelName] = Channel(this, channelName);
+                    std::cout << "Channel " << channelName << " created" << std::endl;
                     client.joinChannel(&_channels[channelName], true);
                     sendMsg(client.fd, ":" + client.nickname + "!ft_irc" + "@" + _ip + " JOIN " + channelName);
                 }
@@ -311,7 +332,10 @@ void Server::joinCommand(const std::string &message, Client &client)
                     client.joinChannel(&_channels[channelName]);
                     _channels[channelName].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname + " JOIN " + channelName);
                     sendMsg(client.fd, ":ft_irc 324 " + client.nickname + " " + channelName + " " + _channels[channelName].getMode());
-                    sendMsg(client.fd, ":ft_irc 331 " + client.nickname + " " + channelName + " :" + _channels[channelName].getTopic());
+                    if (_channels[channelName].getTopic().empty())
+                        sendMsg(client.fd, ":ft_irc 331 " + client.nickname + " " + channelName + " :No topic is set");
+                    else
+                        sendMsg(client.fd, ":ft_irc 332 " + client.nickname + " " + channelName + " :" + _channels[channelName].getTopic());
                 }
                 sendMsg(client.fd, ":ft_irc 353 " + client.nickname + " = " + channelName + " :" + _channels[channelName].getNames());
                 sendMsg(client.fd, ":ft_irc 366 " + client.nickname + " " + channelName + " :End of /NAMES list");
@@ -415,12 +439,8 @@ void Server::partCommand(const std::string &message, Client &client)
                 sendMsg(client.fd, PREFIX_ERR_NOTONCHANNEL + client.nickname + " " + channelName + ERR_NOTONCHANNEL);
             else
             {
-                for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); it++)
-                {
-                    if (it->nickname == client.nickname || client.isInAChannelWith(it->nickname))
-                        sendMsg(it->fd, ":" + client.nickname + "!" + client.username + "@" + client.hostname
-                                    + " PART " + channelName + " :" + reason);
-                }
+                _channels[channelName].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                                + " PART " + channelName + " :" + reason);
                 client.leaveChannel(&_channels[channelName]);
             }
         }
@@ -451,13 +471,70 @@ void Server::kickCommand(const std::string &message, Client &client)
             reason = "Reason not specified";
 
         Client &target = getClient(getWord(message, 2));
-        for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); it++)
-        {
-            if (it->nickname == target.nickname || target.isInAChannelWith(it->nickname))
-                sendMsg(it->fd, ":" + client.nickname + "!" + client.username + "@" + client.hostname
-                            + " KICK " + channelName + " " + target.nickname + " :" + reason);
-        }
+        _channels[channelName].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                        + " KICK " + channelName + " " + target.nickname + " :" + reason);
         target.leaveChannel(&_channels[channelName]);
+    }
+}
+
+void Server::inviteCommand(const std::string &message, Client &client)
+{
+    std::string nickname = getWord(message, 1);
+    std::string channelName = getWord(message, 2);
+
+    if (countWords(message) < 3)
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " INVITE" + ERR_NEEDMOREPARAMS);
+    else if (!clientExists(nickname))
+        sendMsg(client.fd, PREFIX_ERR_NOSUCHNICK + client.nickname + " " + nickname + ERR_NOSUCHNICK);
+    else if (!channelExists(channelName))
+        sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + channelName + ERR_NOSUCHCHANNEL);
+    else if (!_channels[channelName].userExists(client.nickname))
+        sendMsg(client.fd, PREFIX_ERR_NOTONCHANNEL + client.nickname + " " + channelName + ERR_NOTONCHANNEL);
+    else if (_channels[channelName].userExists(nickname))
+        sendMsg(client.fd, PREFIX_ERR_USERONCHANNEL + client.nickname + " " + nickname + " " + channelName + ERR_USERONCHANNEL);
+    else if(!_channels[channelName].isOperator(client.nickname) && _channels[channelName].isInviteOnly())
+        sendMsg(client.fd, PREFIX_ERR_CHANOPRIVSNEEDED + client.nickname + " " + channelName + ERR_CHANOPRIVSNEEDED);
+    else
+    {
+        _channels[channelName].addInvited(nickname);
+        sendMsg(getClient(nickname).fd, ":" + client.nickname + "!" + client.username + "@" + client.hostname
+                + " INVITE " + nickname + " " + channelName);
+        sendMsg(client.fd, ":ft_irc 341 " + client.nickname + " " + nickname + " " + channelName);
+    }
+}
+
+void Server::topicCommand(const std::string &message, Client &client)
+{
+    std::string channelName = getWord(message, 1);
+
+    if (countWords(message) < 2 || (message.find_first_of(":") == std::string::npos && countWords(message) > 2))
+        sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " TOPIC" + ERR_NEEDMOREPARAMS);
+    else if (!channelExists(channelName))
+        sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + channelName + ERR_NOSUCHCHANNEL);
+    else if (!_channels[channelName].userExists(client.nickname))
+        sendMsg(client.fd, PREFIX_ERR_NOTONCHANNEL + client.nickname + " " + channelName + ERR_NOTONCHANNEL);
+    else if (countWords(message) == 2)
+    {
+        if (_channels[channelName].getTopic().empty())
+            sendMsg(client.fd, ":ft_irc 331 " + client.nickname + " " + channelName + " :No topic is set");
+        else
+        {
+            sendMsg(client.fd, ":ft_irc 332 " + client.nickname + " " + channelName + " :" + _channels[channelName].getTopic());
+            sendMsg(client.fd, ":ft_irc 333 " + client.nickname + " " + channelName + " "
+                        + _channels[channelName].getTopicAuthor() + " " + _channels[channelName].getTopicTime());
+        }
+    }
+    else
+    {
+        if (!_channels[channelName].isOperator(client.nickname) && _channels[channelName].isTopicProtected())
+            sendMsg(client.fd, PREFIX_ERR_CHANOPRIVSNEEDED + client.nickname + " " + channelName + ERR_CHANOPRIVSNEEDED);
+        else
+        {
+            std::string topic = message.substr(message.find_first_of(":") + 1);
+            _channels[channelName].setTopic(topic, client.nickname, time(NULL));
+            _channels[channelName].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                        + " TOPIC " + channelName + " :" + topic);
+        }
     }
 }
 
@@ -474,42 +551,23 @@ void Server::handleMessage(std::string message, int iClient)
 
     for (size_t i = 0; i < tokens.size(); i++)
     {
-        std::string command = getWord(tokens[i], 0);
+        std::string token = tokens[i];
+        std::string command = getWord(token, 0);
 
-        if (command == "CAP")
-        capCommand(tokens[i], client);
-        else if (command == "PING")
-            pingCommand(message, client);
-        else if (command == "PASS" && client.password.empty())
-            passCommand(tokens[i], client);
+        if (command == "CAP" || command == "PING" || (command == "PASS" && client.password.empty()))
+            (this->*_commands[command])(token, client);
         else if (client.password.empty())
             sendMsg(client.fd, PREFIX_ERR_CUSTOM + std::string(":You must send a password first"));
-        else if (command == "NICK" && client.nickname.empty())
-            nickCommand(tokens[i], client);
-        else if (command == "USER" && client.username.empty())
-            userCommand(tokens[i], client);
+        else if ((command == "NICK" && client.nickname.empty()) || (command == "USER" && client.username.empty()))
+            (this->*_commands[command])(token, client);
         else if (client.nickname.empty())
             sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " :You must set a nickname first");
         else if (client.username.empty())
             sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " :You must set a username first");
         else if (command == "PASS" || command == "USER")
             sendMsg(client.fd, PREFIX_ERR_ALREADYREGISTRED + client.nickname + ERR_ALREADYREGISTRED);
-        else if (command == "NICK")
-            nickCommand(message, client);
-        else if (command == "WHO")
-            whoCommand(message, client);
-        else if (command == "JOIN")
-            joinCommand(message, client);
-        else if (command == "PRIVMSG")
-            privmsgCommand(message, client);
-        else if (command == "MODE")
-            modeCommand(message, client);
-        else if (command == "QUIT")
-            quitCommand(message, client);
-        else if (command == "PART")
-            partCommand(message, client);
-        else if (command == "KICK")
-            kickCommand(message, client);
+        else if (_commands.find(command) != _commands.end())
+            (this->*_commands[command])(token, client);
         else
             sendMsg(client.fd, PREFIX_ERR_UNKNOWNCOMMAND + client.nickname + " " + command + ERR_UNKNOWNCOMMAND);
 
@@ -518,8 +576,22 @@ void Server::handleMessage(std::string message, int iClient)
             client.authenticated = true;
             sendWelcomeMessage(client);
         }
+        removeEmptyChannels();
     }
 
+}
+
+void Server::removeEmptyChannels()
+{
+    for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); it++)
+    {
+        if (it->second.getUsersSize() == 0)
+        {
+            std::cout << "Channel " << it->first << " removed" << std::endl;
+            _channels.erase(it);
+            it = _channels.begin();
+        }
+    }
 }
 
 void Server::createSocket()

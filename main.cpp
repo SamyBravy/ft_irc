@@ -98,3 +98,8 @@ std::string getTime(time_t t)
     strftime(buffer, 80, "%H:%M:%S", timeinfo);
     return std::string(buffer);
 }
+
+std::string getMoment(time_t t)
+{
+    return getDay(t) + ", " + getDate(t) + " at " + getTime(t);
+}
