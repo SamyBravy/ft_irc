@@ -120,7 +120,10 @@ void Server::listenClients()
                         handleMessage(messageStr, i - 1);
 					}
 					else if (n == 0)
-						quitCommand("QUIT", _clients[i - 1]);
+					{
+                        quitCommand("QUIT", _clients[i - 1]);
+                        removeEmptyChannels();
+                    }
 					else
 					{
                         if (_clients[i - 1].nickname.empty())
