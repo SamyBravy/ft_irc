@@ -42,6 +42,7 @@ class Server
         void modeCommand(const std::string &message, Client &client);
         void quitCommand(const std::string &message, Client &client);
         void partCommand(const std::string &message, Client &client);
+        void kickCommand(const std::string &message, Client &client);
         
 	public:
 		Server(int port = 8080, const std::string &password = "password");

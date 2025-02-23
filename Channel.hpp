@@ -40,6 +40,7 @@ class Channel
         std::string getTopic() const;
         std::string getNames() const;
         bool isInvited(const std::string &nickname) const;
+        bool isOperator(const std::string &nickname) const;
         bool passMatch(const std::string &key) const;
         void setInviteOnly(bool inviteOnly);
         void addClient(Client *client, bool isOperator = false);

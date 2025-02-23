@@ -23,6 +23,8 @@
 # define ERR_ERRONEUSNICKNAME " :Erroneous nickname"
 # define PREFIX_ERR_NICKNAMEINUSE ":ft_irc 433 "
 # define ERR_NICKNAMEINUSE " :Nickname is already in use"
+# define PREFIX_ERR_USERNOTINCHANNEL ":ft_irc 441 "
+# define ERR_USERNOTINCHANNEL " :They aren't on that channel"
 # define PREFIX_ERR_NOTONCHANNEL ":ft_irc 442 "
 # define ERR_NOTONCHANNEL " :You're not on that channel"
 # define PREFIX_ERR_NEEDMOREPARAMS ":ft_irc 461 "
@@ -37,6 +39,8 @@
 # define ERR_INVITEONLYCHAN " :Cannot join channel (+i)"
 # define PREFIX_ERR_BADCHANNELKEY ":ft_irc 475 "
 # define ERR_BADCHANNELKEY " :Cannot join channel (+k)"
+# define PREFIX_ERR_CHANOPRIVSNEEDED ":ft_irc 482 "
+# define ERR_CHANOPRIVSNEEDED " :You're not channel operator"
 
 # include <cstring>
 # include <iostream>

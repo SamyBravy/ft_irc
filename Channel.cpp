@@ -57,6 +57,11 @@ bool Channel::isInvited(const std::string &nickname) const
     return !_inviteOnly || _invited.find(nickname) != _invited.end();
 }
 
+bool Channel::isOperator(const std::string &nickname) const
+{
+    return _users.find(nickname) != _users.end() && _users.at(nickname).isOperator;
+}
+
 bool Channel::passMatch(const std::string &key) const
 {
     return _password == key || _password.empty();
