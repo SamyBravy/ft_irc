@@ -766,7 +766,15 @@ void Server::bindServer()
     if (gethostname(hostname, sizeof(hostname)) == -1)
         throw ServerException("Error getting hostname");
 
-    struct addrinfo hints, *res; //
+    struct addrinfo hints, *res;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    if (getaddrinfo(hostname, NULL, &hints, &res) != 0)
+        throw ServerException("Error getting address info");
+    
+    _server_addr.sin_addr = reinterpret_cast<struct sockaddr_in *>(res->ai_addr)->sin_addr;
+    freeaddrinfo(res);
 
 	int opt = 1;
 	setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));

@@ -51,6 +51,7 @@
 # include <cstring>
 # include <iostream>
 # include <netinet/in.h>
+# include <netdb.h>
 # include <arpa/inet.h>
 # include <sys/socket.h>
 # include <unistd.h>
@@ -58,11 +59,11 @@
 # include <sstream>
 # include <poll.h>
 # include <cstdlib>
+# include <fstream>
 # include <ctime>
 # include <vector>
 # include <map>
 # include <set>
-# include <fstream>
 
 std::vector<std::string> split(const std::string &str, char delim);
 int countWords(const std::string &str);
