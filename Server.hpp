@@ -19,10 +19,9 @@ class Server
 		std::map<std::string, Channel> _channels;
         time_t _creationMoment;
 
-        void addClient(int client_fd);
         void removeClient(Client *client);
         void removeEmptyChannels();
-        struct pollfd *getPollfds() const;
+        std::vector<struct pollfd> getPollfds() const;
         
 		void createSocket();
 		void bindServer();
@@ -30,7 +29,7 @@ class Server
         Client &getClient(const std::string nickname);
         
         void sendWelcomeMessage(const Client &client) const;
-        void handleMessage(std::string message, int i);
+        void handleMessage(std::string message, size_t i);
 
         void capCommand(const std::string &message, Client &client);
         void passCommand(const std::string &message, Client &client);
@@ -40,6 +39,7 @@ class Server
         void whoCommand(const std::string &message, Client &client);
         void joinCommand(const std::string &message, Client &client);
         void privmsgCommand(const std::string &message, Client &client);
+        void noticeCommand(const std::string &message, Client &client);
         void modeCommand(const std::string &message, Client &client);
         void quitCommand(const std::string &message, Client &client);
         void partCommand(const std::string &message, Client &client);

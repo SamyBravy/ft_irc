@@ -1,9 +1,6 @@
 #ifndef FT_IRC_HPP
 # define FT_IRC_HPP
 
-# define MAX_CLIENTS 10
-# define MAX_CHANNELS 1024
-
 # define PREFIX_ERR_CUSTOM ":ft_irc 400 "
 # define PREFIX_ERR_NOSUCHNICK ":ft_irc 401 "
 # define ERR_NOSUCHNICK " :No such nick/channel"

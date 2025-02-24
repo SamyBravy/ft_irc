@@ -9,6 +9,7 @@ Channel::Channel(Server *server, const std::string &name) : _server(server), _na
 std::vector<Client *> Channel::getClients() const
 {
     std::vector<Client *> clients;
+    clients.reserve(_users.size());
 
     for (std::map<std::string, ChannelClient>::const_iterator it = _users.begin(); it != _users.end(); it++)
         clients.push_back(it->second.client);
@@ -101,7 +102,7 @@ void Channel::removeClient(const std::string &nickname)
         return;
 
     Client *client = _users[nickname].client;
-    std::string newOpMsg = ":" + client->nickname + "!" + client->username + "@" + client->hostname + " MODE " + _name + " -o ";
+    std::string newOpMsg = ":" + client->nickname + "!" + client->username + "@" + client->hostname + " MODE " + _name + " +o ";
 
     if (isOperator(nickname))
         _operatorsCount--;

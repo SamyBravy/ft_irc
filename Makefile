@@ -2,7 +2,7 @@
 # https://chatgpt.com/c/67b37fb3-a6f4-800c-ac29-1848245ad517
 # https://www.alien.net.au/irc/irc2numerics.html
 # https://dd.ircdocs.horse/refs/commands/motd
-# https://modern.ircdocs.horse/#nick-message
+# https://modern.ircdocs.horse/
 
 NAME = ircserv
 SRC = main.cpp \
@@ -10,7 +10,11 @@ SRC = main.cpp \
 	Client.cpp \
 	Channel.cpp
 
-FLAGS = -Wall -Wextra -Werror -std=c++98
+FLAGS = -Wall -Wextra -Werror -std=c++98 \
+-pedantic -Wshadow -Wfloat-equal \
+			 -Wundef -Wredundant-decls -Wold-style-cast -Wnon-virtual-dtor \
+			-Woverloaded-virtual -Wformat=2 \
+			-std=c++98 -g -Ofast
 CC = c++
 
 all: $(NAME)

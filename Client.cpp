@@ -1,17 +1,20 @@
 #include "Client.hpp"
 
-Client::Client(int clientFd) : fd(clientFd), authenticated(false) { }
+Client::Client(int clientFd) : fd(clientFd), authenticated(false)
+{
+    channels.reserve(20);
+}
 
 std::string Client::getInfo() const
 {
     return (username + " " + hostname + " " + servername + " " + nickname + " H :0 " + realname);
 }
 
-bool Client::isInAChannelWith(const std::string &nickname) const
+bool Client::isInAChannelWith(const std::string &nick) const
 {
     for (std::vector<Channel *>::const_iterator it = channels.begin(); it != channels.end(); it++)
     {
-        if ((*it)->userExists(nickname))
+        if ((*it)->userExists(nick))
             return true;
     }
     return false;
