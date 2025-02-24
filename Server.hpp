@@ -47,13 +47,20 @@ class Server
         void inviteCommand(const std::string &message, Client &client);
         void topicCommand(const std::string &message, Client &client);
 
-        std::map<std::string, void (Server::*)(const std::string &, Client &)> _commands;
+        void inviteOnlyMode(const std::string &argument, bool add, Client &client);
+        void topicProtectedMode(const std::string &argument, bool add, Client &client);
+        void passwordMode(const std::string &argument, bool add, Client &client);
+        void limitMode(const std::string &argument, bool add, Client &client);
+        void operatorMode(const std::string &argument, bool add, Client &client);
+
+        std::map<std::string, void (Server::*)(const std::string&, Client&)> _commands;
+        std::map<char, void (Server::*)(const std::string&, bool, Client&)> _modes;
         
 	public:
         Server(int port = 8080, const std::string &password = "password");
         ~Server();
     
-        void initCommands();
+        void initCommandsAndModes();
 		void run();
         void listenClients();
 

@@ -24,6 +24,7 @@ class Channel
 {
 	private:
         Server *_server;
+        time_t _creationMoment;
 		std::string _name;
         std::string _password;
         Topic _topic;
@@ -48,14 +49,14 @@ class Channel
         std::string getTopicAuthor() const { return _topic.author; }
         std::string getTopicTime() const;
         std::string getNames() const;
+        std::string getCreationMoment() const;
         bool isInvited(const std::string &nickname) const;
         bool isOperator(const std::string &nickname) const;
         bool isInviteOnly() const { return _inviteOnly; }
         bool isTopicProtected() const { return _topicProtected; }
         bool passMatch(const std::string &key) const;
         void setInviteOnly(bool inviteOnly);
-        void setTopic(const std::string &topic, const std::string &author, time_t time)
-            { _topic.str = topic; _topic.author = author; _topic.time = time; }
+        void setTopic(const std::string &topic, const std::string &author);
         void addClient(Client *client, bool isOperator = false);
         void addInvited(const std::string &nickname);
         void removeClient(const std::string &nickname);

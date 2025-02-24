@@ -37,6 +37,8 @@
 # define ERR_PASSWDMISMATCH " :Password incorrect"
 # define PREFIX_ERR_CHANNELISFULL ":ft_irc 471 "
 # define ERR_CHANNELISFULL " :Cannot join channel (+l)"
+# define PREFIX_ERR_UNKNOWNMODE ":ft_irc 472 "
+# define ERR_UNKNOWNMODE " :is unknown mode char to me"
 # define PREFIX_ERR_INVITEONLYCHAN ":ft_irc 473 "
 # define ERR_INVITEONLYCHAN " :Cannot join channel (+i)"
 # define PREFIX_ERR_BADCHANNELKEY ":ft_irc 475 "

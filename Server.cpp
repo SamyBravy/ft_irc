@@ -2,7 +2,7 @@
 
 Server::Server(int port, const std::string &password) : _fd(-1), _port(port), _password(password)
 {
-    initCommands();
+    initCommandsAndModes();
 }
 
 Server::~Server()
@@ -17,7 +17,7 @@ Server::~Server()
 	}
 }
 
-void Server::initCommands()
+void Server::initCommandsAndModes()
 {
     _commands["CAP"] = &Server::capCommand;
     _commands["PASS"] = &Server::passCommand;
@@ -33,6 +33,12 @@ void Server::initCommands()
     _commands["KICK"] = &Server::kickCommand;
     _commands["INVITE"] = &Server::inviteCommand;
     _commands["TOPIC"] = &Server::topicCommand;
+
+    _modes['i'] = &Server::inviteOnlyMode;
+    _modes['t'] = &Server::topicProtectedMode;
+    _modes['k'] = &Server::passwordMode;
+    _modes['l'] = &Server::limitMode;
+    _modes['o'] = &Server::operatorMode;
 }
 
 void Server::run()
@@ -388,14 +394,53 @@ void Server::modeCommand(const std::string &message, Client &client)
 
     if (countWords(message) < 2)
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " MODE" + ERR_NEEDMOREPARAMS);
+    else if (!channelExists(target) && target.find_first_of("#&") == 0)
+        sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + target + ERR_NOSUCHCHANNEL);
+    else if (!clientExists(target))
+        sendMsg(client.fd, PREFIX_ERR_NOSUCHNICK + client.nickname + " " + target + ERR_NOSUCHNICK);
     else if (countWords(message) == 2)
     {
         if (channelExists(target))
+        {
             sendMsg(client.fd, ":ft_irc 324 " + client.nickname + " " + target + " " + _channels[target].getMode());
-        else if (target.find_first_of("#&") == 0)
-            sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + target + ERR_NOSUCHCHANNEL);
-        else if (!clientExists(target))
-            sendMsg(client.fd, PREFIX_ERR_NOSUCHNICK + client.nickname + " " + target + ERR_NOSUCHNICK);
+            sendMsg(client.fd, ":ft_irc 329 " + client.nickname + " " + target + " " + _channels[target].getCreationMoment());
+        }
+    }
+    else if (!_channels[target].userExists(client.nickname))
+        sendMsg(client.fd, PREFIX_ERR_NOTONCHANNEL + client.nickname + " " + target + ERR_NOTONCHANNEL);
+    else if (!_channels[target].isOperator(client.nickname))
+        sendMsg(client.fd, PREFIX_ERR_CHANOPRIVSNEEDED + client.nickname + " " + target + ERR_CHANOPRIVSNEEDED);
+    else if (getWord(message, 2).find_first_of("+-") != 0)
+        sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " MODE " + getWord(message, 2) + " :Modestring must start with + or -");
+    else
+    {
+        std::vector<std::string> modeArgs;
+        std::istringstream iss(message);
+        std::string word;
+        iss >> word;
+        iss >> word;
+        iss >> word;
+        while (iss >> word)
+            modeArgs.push_back(word);
+
+        std::string::iterator it = getWord(message, 2).begin();
+        bool add;
+        for (int i = 0; it != getWord(message, 2).end(); it++)
+        {
+            if (*it == '+' || *it == '-')
+            {
+                add = *it == '+';
+                continue;
+            }
+            if (_modes.find(*it) == _modes.end())
+                sendMsg(client.fd, PREFIX_ERR_UNKNOWNMODE + client.nickname + " " + *it + ERR_UNKNOWNMODE);
+            else
+            {
+                std::string arg = i < modeArgs.size() ? modeArgs[i] : "";
+                (this->*_modes[*it])(arg, add, client);
+            }
+            i++;
+        }
     }
 }
 
@@ -534,7 +579,7 @@ void Server::topicCommand(const std::string &message, Client &client)
         else
         {
             std::string topic = message.substr(message.find_first_of(":") + 1);
-            _channels[channelName].setTopic(topic, client.nickname, time(NULL));
+            _channels[channelName].setTopic(topic, client.nickname);
             _channels[channelName].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
                         + " TOPIC " + channelName + " :" + topic);
         }

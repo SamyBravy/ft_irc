@@ -1,7 +1,10 @@
 #include "Channel.hpp"
 
 Channel::Channel(Server *server, const std::string &name) : _server(server), _name(name),
-                                                                _limit(0), _topicProtected(false), _inviteOnly(false) { }
+                                                                _limit(0), _topicProtected(false), _inviteOnly(false)
+{
+    _creationMoment = time(NULL);
+}
 
 std::vector<Client *> Channel::getClients() const
 {
@@ -52,6 +55,13 @@ void Channel::setInviteOnly(bool inviteOnly)
     _inviteOnly = inviteOnly;
     if (!_inviteOnly)
         _invited.clear();
+}
+
+void Channel::setTopic(const std::string &topic, const std::string &author)
+{
+    _topic.str = topic;
+    _topic.author = author;
+    _topic.time = time(NULL);
 }
 
 bool Channel::isInvited(const std::string &nickname) const
@@ -116,6 +126,15 @@ std::string Channel::getTopicTime() const
     std::ostringstream oss;
 
     oss << _topic.time;
+    
+    return oss.str();
+}
+
+std::string Channel::getCreationMoment() const
+{
+    std::ostringstream oss;
+
+    oss << _creationMoment;
     
     return oss.str();
 }
