@@ -3,6 +3,8 @@
 
 int main(int argc, char *argv[])
 {
+    srand(time(0));
+    
     if (argc != 3)
 	{
 		std::cerr << "Error: usage: " << argv[0] << " <port> <password>" << std::endl;

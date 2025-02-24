@@ -47,14 +47,14 @@ class Server
         void inviteCommand(const std::string &message, Client &client);
         void topicCommand(const std::string &message, Client &client);
 
-        void inviteOnlyMode(const std::string &argument, bool add, Client &client);
-        void topicProtectedMode(const std::string &argument, bool add, Client &client);
-        void passwordMode(const std::string &argument, bool add, Client &client);
-        void limitMode(const std::string &argument, bool add, Client &client);
-        void operatorMode(const std::string &argument, bool add, Client &client);
+        bool inviteOnlyMode(const std::string &channel, const std::string &argument, bool add, Client &client);
+        bool topicProtectedMode(const std::string &channel, const std::string &argument, bool add, Client &client);
+        bool passwordMode(const std::string &channel, const std::string &argument, bool add, Client &client);
+        bool limitMode(const std::string &channel, const std::string &argument, bool add, Client &client);
+        bool operatorMode(const std::string &channel, const std::string &argument, bool add, Client &client);
 
         std::map<std::string, void (Server::*)(const std::string&, Client&)> _commands;
-        std::map<char, void (Server::*)(const std::string&, bool, Client&)> _modes;
+        std::map<char, bool (Server::*)(const std::string&, const std::string&, bool, Client&)> _modes;
         
 	public:
         Server(int port = 8080, const std::string &password = "password");

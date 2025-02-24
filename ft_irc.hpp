@@ -35,6 +35,8 @@
 # define ERR_ALREADYREGISTRED " :You may not reregister"
 # define PREFIX_ERR_PASSWDMISMATCH ":ft_irc 464 "
 # define ERR_PASSWDMISMATCH " :Password incorrect"
+# define PREFIX_ERR_KEYSET ":ft_irc 467 "
+# define ERR_KEYSET " :Channel key already set"
 # define PREFIX_ERR_CHANNELISFULL ":ft_irc 471 "
 # define ERR_CHANNELISFULL " :Cannot join channel (+l)"
 # define PREFIX_ERR_UNKNOWNMODE ":ft_irc 472 "
@@ -60,6 +62,7 @@
 # include <map>
 # include <set>
 # include <fstream>
+# include <ctime>
 
 std::vector<std::string> split(const std::string &str, char delim);
 int countWords(const std::string &str);

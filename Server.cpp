@@ -436,12 +436,106 @@ void Server::modeCommand(const std::string &message, Client &client)
                 sendMsg(client.fd, PREFIX_ERR_UNKNOWNMODE + client.nickname + " " + *it + ERR_UNKNOWNMODE);
             else
             {
-                std::string arg = i < modeArgs.size() ? modeArgs[i] : "";
-                (this->*_modes[*it])(arg, add, client);
+                std::string arg = i < (int)modeArgs.size() ? modeArgs[i] : "";
+                i += (this->*_modes[*it])(target, arg, add, client);
             }
-            i++;
         }
     }
+}
+
+bool Server::inviteOnlyMode(const std::string &channel, const std::string &argument, bool add, Client &client)
+{
+    (void)argument;
+
+    _channels[channel].setInviteOnly(add);
+    _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                + " MODE " + channel + " " + (add ? "+i" : "-i"));
+
+    return false;
+}
+
+bool Server::topicProtectedMode(const std::string &channel, const std::string &argument, bool add, Client &client)
+{
+    (void)argument;
+
+    _channels[channel].setTopicProtected(add);
+    _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                + " MODE " + channel + " " + (add ? "+t" : "-t"));
+
+    return false;
+}
+
+bool Server::passwordMode(const std::string &channel, const std::string &argument, bool add, Client &client)
+{
+    if (add)
+    {
+        if (argument.empty())
+        {
+            sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " MODE" + ERR_NEEDMOREPARAMS);
+            return false;
+        }
+        if (!_channels[channel].passMatch(""))
+        {
+            sendMsg(client.fd, PREFIX_ERR_PASSWDMISMATCH + client.nickname + " MODE" + ERR_PASSWDMISMATCH);
+            return true;
+        }
+        
+        _channels[channel].setPassword(argument);
+        _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                    + " MODE " + channel + " +k secretPass");
+        return true;
+    }
+
+    _channels[channel].setPassword("");
+    _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                + " MODE " + channel + " -k");
+    return false;
+}
+
+bool Server::limitMode(const std::string &channel, const std::string &argument, bool add, Client &client)
+{
+    if (add)
+    {
+        if (argument.empty())
+        {
+            sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " MODE" + ERR_NEEDMOREPARAMS);
+            return false;
+        }
+        if (argument.find_first_not_of("0123456789") != std::string::npos)
+        {
+            sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " MODE " + channel + " :Limit must be a positive integer");
+            return true;
+        }
+        if (strToNum<int>(argument) == 0)
+        {
+            sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " MODE " + channel + " :Limit must be greater than 0");
+            return true;
+        }
+
+        _channels[channel].setLimit(strToNum<int>(argument));
+        _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                    + " MODE " + channel + " +l " + argument);
+        return true;
+    }
+
+    _channels[channel].setLimit(0);
+    _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                + " MODE " + channel + " -l");
+    return false;
+}
+
+bool Server::operatorMode(const std::string &channel, const std::string &argument, bool add, Client &client)
+{
+    (void)add;
+    (void)channel;
+    (void)client;
+    if (argument.empty())
+    {
+        // lista operatori. e se metto -o+ è uguale?
+        return false;
+    }
+
+    return true;
 }
 
 void Server::quitCommand(const std::string &message, Client &client)

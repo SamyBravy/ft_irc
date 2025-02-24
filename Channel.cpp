@@ -1,7 +1,7 @@
 #include "Channel.hpp"
 
-Channel::Channel(Server *server, const std::string &name) : _server(server), _name(name),
-                                                                _limit(0), _topicProtected(false), _inviteOnly(false)
+Channel::Channel(Server *server, const std::string &name) : _server(server), _name(name), _limit(0),
+                                                                _operatorsCount(0), _topicProtected(false), _inviteOnly(false)
 {
     _creationMoment = time(NULL);
 }
@@ -83,6 +83,8 @@ void Channel::addClient(Client *client, bool isOperator)
 {
     ChannelClient channelClient = { client, isOperator };
     _users[client->nickname] = channelClient;
+    if (isOperator)
+        _operatorsCount++;
 
     if (_invited.find(client->nickname) != _invited.end())
         _invited.erase(client->nickname);
@@ -95,8 +97,42 @@ void Channel::addInvited(const std::string &nickname)
 
 void Channel::removeClient(const std::string &nickname)
 {
+    if (_users.find(nickname) == _users.end())
+        return;
+
+    Client *client = _users[nickname].client;
+    std::string newOpMsg = ":" + client->nickname + "!" + client->username + "@" + client->hostname + " MODE " + _name + " -o ";
+
+    if (isOperator(nickname))
+        _operatorsCount--;
     _users.erase(nickname);
     _invited.erase(nickname);
+
+    if (!_users.empty() && _operatorsCount == 0)
+    {
+        std::map<std::string, ChannelClient>::iterator it = _users.begin();
+        std::advance(it, rand() % _users.size());
+        setOperator(it->first);
+        sendMsg(newOpMsg + it->first);
+    }
+}
+
+void Channel::setOperator(const std::string &nickname)
+{
+    if (_users.find(nickname) != _users.end())
+    {
+        _users[nickname].isOperator = true;
+        _operatorsCount++;
+    }
+}
+
+void Channel::unsetOperator(const std::string &nickname)
+{
+    if (_users.find(nickname) != _users.end())
+    {
+        _users[nickname].isOperator = false;
+        _operatorsCount--;
+    }
 }
 
 std::string Channel::getMode() const

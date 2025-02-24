@@ -29,6 +29,7 @@ class Channel
         std::string _password;
         Topic _topic;
         int _limit;
+        int _operatorsCount;
         bool _topicProtected;
         bool _inviteOnly;
         std::map<std::string, ChannelClient> _users;
@@ -56,7 +57,12 @@ class Channel
         bool isTopicProtected() const { return _topicProtected; }
         bool passMatch(const std::string &key) const;
         void setInviteOnly(bool inviteOnly);
+        void setTopicProtected(bool topicProtected) { _topicProtected = topicProtected; }
+        void setPassword(const std::string &pass) { _password = pass; }
+        void setLimit(int limit) { _limit = limit; }
         void setTopic(const std::string &topic, const std::string &author);
+        void setOperator(const std::string &nickname);
+        void unsetOperator(const std::string &nickname);
         void addClient(Client *client, bool isOperator = false);
         void addInvited(const std::string &nickname);
         void removeClient(const std::string &nickname);
