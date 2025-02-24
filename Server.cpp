@@ -391,6 +391,7 @@ void Server::privmsgCommand(const std::string &message, Client &client)
 void Server::modeCommand(const std::string &message, Client &client)
 {
     std::string target = getWord(message, 1);
+    std::string modes = getWord(message, 2);
 
     if (countWords(message) < 2)
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " MODE" + ERR_NEEDMOREPARAMS);
@@ -408,10 +409,12 @@ void Server::modeCommand(const std::string &message, Client &client)
     }
     else if (!_channels[target].userExists(client.nickname))
         sendMsg(client.fd, PREFIX_ERR_NOTONCHANNEL + client.nickname + " " + target + ERR_NOTONCHANNEL);
+    else if (countWords(message) == 3 && modes.find_first_not_of("+-o") == std::string::npos && modes.find_first_of("+-") == 0)
+        operatorMode(target, "", true, client);
     else if (!_channels[target].isOperator(client.nickname))
         sendMsg(client.fd, PREFIX_ERR_CHANOPRIVSNEEDED + client.nickname + " " + target + ERR_CHANOPRIVSNEEDED);
-    else if (getWord(message, 2).find_first_of("+-") != 0)
-        sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " MODE " + getWord(message, 2) + " :Modestring must start with + or -");
+    else if (modes.find_first_of("+-") != 0)
+        sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " MODE " + modes + " :Modestring must start with + or -");
     else
     {
         std::vector<std::string> modeArgs;
@@ -423,9 +426,9 @@ void Server::modeCommand(const std::string &message, Client &client)
         while (iss >> word)
             modeArgs.push_back(word);
 
-        std::string::iterator it = getWord(message, 2).begin();
+        std::string::iterator it = modes.begin();
         bool add;
-        for (int i = 0; it != getWord(message, 2).end(); it++)
+        for (int i = 0; it != modes.end(); it++)
         {
             if (*it == '+' || *it == '-')
             {
@@ -502,19 +505,15 @@ bool Server::limitMode(const std::string &channel, const std::string &argument, 
             return false;
         }
         if (argument.find_first_not_of("0123456789") != std::string::npos)
-        {
             sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " MODE " + channel + " :Limit must be a positive integer");
-            return true;
-        }
         if (strToNum<int>(argument) == 0)
-        {
             sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " MODE " + channel + " :Limit must be greater than 0");
-            return true;
+        else
+        {
+            _channels[channel].setLimit(strToNum<int>(argument));
+            _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                        + " MODE " + channel + " +l " + argument);
         }
-
-        _channels[channel].setLimit(strToNum<int>(argument));
-        _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
-                                    + " MODE " + channel + " +l " + argument);
         return true;
     }
 
@@ -526,15 +525,26 @@ bool Server::limitMode(const std::string &channel, const std::string &argument, 
 
 bool Server::operatorMode(const std::string &channel, const std::string &argument, bool add, Client &client)
 {
-    (void)add;
-    (void)channel;
-    (void)client;
     if (argument.empty())
     {
-        // lista operatori. e se metto -o+ è uguale?
+        sendMsg(client.fd, ":" + client.nickname + "!" + client.username + "@" + client.hostname
+                + " MODE " + channel + " +o " + _channels[channel].getOperators());
         return false;
     }
 
+    if (!clientExists(argument))
+        sendMsg(client.fd, PREFIX_ERR_NOSUCHNICK + client.nickname + " " + argument + ERR_NOSUCHNICK);
+    else if (!_channels[channel].userExists(argument))
+        sendMsg(client.fd, PREFIX_ERR_USERNOTINCHANNEL + client.nickname + " " + argument + " " + channel + ERR_USERNOTINCHANNEL);
+    else
+    {
+        if (add)
+            _channels[channel].unsetOperator(argument);
+        else
+            _channels[channel].setOperator(argument);
+        _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                    + " MODE " + channel + " " + (add ? "-o " : "+o ") + argument);
+    }
     return true;
 }
 
@@ -750,12 +760,17 @@ void Server::bindServer()
 
 	memset(&_server_addr, 0, sizeof(_server_addr));
 	_server_addr.sin_family = AF_INET;
-	_server_addr.sin_addr.s_addr = INADDR_ANY;
 	_server_addr.sin_port = htons(_port);
+
+    char hostname[256];
+    if (gethostname(hostname, sizeof(hostname)) == -1)
+        throw ServerException("Error getting hostname");
+
+    struct addrinfo hints, *res; //
 
 	int opt = 1;
 	setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-	if (bind(_fd, (struct sockaddr *)&_server_addr, sizeof(_server_addr)) < 0)
+	if (bind(_fd, reinterpret_cast<struct sockaddr *>(&_server_addr), sizeof(_server_addr)) < 0)
 	{
 		close(_fd);
 		throw ServerException("Error binding server");

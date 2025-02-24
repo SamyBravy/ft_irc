@@ -6,7 +6,7 @@
 # include "ft_irc.hpp"
 
 class Channel;
-class Client;
+struct Client;
 
 class Server
 {	

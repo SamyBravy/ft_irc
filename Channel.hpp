@@ -50,6 +50,7 @@ class Channel
         std::string getTopicAuthor() const { return _topic.author; }
         std::string getTopicTime() const;
         std::string getNames() const;
+        std::string getOperators() const;
         std::string getCreationMoment() const;
         bool isInvited(const std::string &nickname) const;
         bool isOperator(const std::string &nickname) const;

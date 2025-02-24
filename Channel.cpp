@@ -157,6 +157,19 @@ std::string Channel::getNames() const
     return names;
 }
 
+std::string Channel::getOperators() const
+{
+    std::string operators;
+
+    for (std::map<std::string, ChannelClient>::const_iterator it = _users.begin(); it != _users.end(); it++)
+    {
+        if (it->second.isOperator)
+            operators += it->first + " ";
+    }
+
+    return operators;
+}
+
 std::string Channel::getTopicTime() const
 {
     std::ostringstream oss;

@@ -58,11 +58,11 @@
 # include <sstream>
 # include <poll.h>
 # include <cstdlib>
+# include <ctime>
 # include <vector>
 # include <map>
 # include <set>
 # include <fstream>
-# include <ctime>
 
 std::vector<std::string> split(const std::string &str, char delim);
 int countWords(const std::string &str);
