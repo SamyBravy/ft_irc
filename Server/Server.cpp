@@ -87,6 +87,12 @@ void Server::listenClients()
                 {
                     try
                     {
+                        int opt = 1;
+                        if (setsockopt(client_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+                            throw Server::ServerException("Error setting socket options");
+                        if (fcntl(client_fd, F_SETFL, O_NONBLOCK) == -1)
+                            throw Server::ServerException("Error setting socket options");
+
                         _clients.push_back(Client(client_fd));
                         std::cout << "New client connected: " << client_fd << std::endl;
                     }
@@ -206,7 +212,7 @@ void Server::nickCommand(const std::string &message, Client &client)
 
     if (countWords(message) < 2)
         sendMsg(client.fd, PREFIX_ERR_NONICKNAMEGIVEN + client.nickname + " NICK" + ERR_NONICKNAMEGIVEN);
-    else if (message.find_first_of(":@#&") != std::string::npos)
+    else if (message.find_first_of(":@#&!") != std::string::npos)
         sendMsg(client.fd, PREFIX_ERR_ERRONEUSNICKNAME + client.nickname + " NICK " + nick + ERR_ERRONEUSNICKNAME);
     else if (clientExists(nick) || nick == "ft_irc")
     {
@@ -227,6 +233,12 @@ void Server::userCommand(const std::string &message, Client &client)
 {
     if (countWords(message) < 5)
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " USER" + ERR_NEEDMOREPARAMS);
+    else if (getWord(message, 1).find_first_of(":@#&!") != std::string::npos)
+        sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " USER " + getWord(message, 1) + " :Invalid username");
+    else if (getWord(message, 2).find_first_of(":@#&!") != std::string::npos)
+        sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " USER " + getWord(message, 2) + " :Invalid hostname");
+    else if (getWord(message, 3).find_first_of(":@#&!") != std::string::npos)
+        sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " USER " + getWord(message, 3) + " :Invalid servername");
     else
     {
         client.username = getWord(message, 1);
@@ -324,6 +336,11 @@ void Server::joinCommand(const std::string &message, Client &client)
             {
                 if(!channelExists(channelName))
                 {
+                    if (channelName.find_first_of("!@") != std::string::npos)
+                    {
+                        sendMsg(client.fd, PREFIX_ERR_CUSTOM + client.nickname + " JOIN " + channelName + " :Invalid channel name");
+                        continue;
+                    }
                     _channels[channelName] = Channel(this, channelName);
                     std::cout << "Channel " << channelName << " created" << std::endl;
                     client.joinChannel(&_channels[channelName], true);
@@ -801,7 +818,18 @@ void Server::bindServer()
     freeaddrinfo(res);
 
 	int opt = 1;
-	setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+    {
+        close(_fd);
+        throw ServerException("Error setting socket options");
+    }
+
+    if (fcntl(_fd, F_SETFL, O_NONBLOCK) < 0)
+    {
+        close(_fd);
+        throw ServerException("Error setting socket to non-blocking");
+    }
+
 	if (bind(_fd, reinterpret_cast<struct sockaddr *>(&_server_addr), sizeof(_server_addr)) < 0)
 	{
 		close(_fd);

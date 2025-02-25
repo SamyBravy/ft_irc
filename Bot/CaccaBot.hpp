@@ -11,7 +11,7 @@ class CaccaBot
         std::string _serverIp;
         int _serverPort;
         std::string _serverPassword;
-        std::string _serverName;
+        std::map<std::string, std::string> _commands;
 
         void connectToServer();
         void sendMsg(std::string msg) const;
@@ -21,6 +21,8 @@ class CaccaBot
         ~CaccaBot();
 
         void run();
+
+        std::string getCommandList() const;
 
         class CaccaBotException : public std::exception
         {

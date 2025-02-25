@@ -155,3 +155,40 @@ std::string getMoment(time_t t)
 {
     return getDay(t) + ", " + getDate(t) + " at " + getTime(t);
 }
+
+bool isFormattedLike(const std::string &str, const std::string &format)
+{
+    std::string::const_iterator it1, it2;
+    for (it1 = str.begin(), it2 = format.begin(); it1 != str.end() && it2 != format.end(); it1++, it2++)
+    {
+        if (*it1 == ' ' && it1 + 1 != str.end() && *(it1 + 1) == ' ')
+            it1++;
+        if (*it2 != '%')
+        {
+            if (*it1 != *it2)
+                return false;
+        }
+        else
+        {
+            it2++;
+            if (it2 == format.end() && *it1 != '%')
+                return false;
+            if (*it2 == 'd')
+            {
+                std::string word = getWord(str.substr(it1 - str.begin()), 0);
+                if (word.empty() || word.find_first_not_of("0123456789") != std::string::npos)
+                    return false;
+                it1 += word.length() - 1;
+            }
+            else if (*it2 == 's')
+            {
+                while (it1 != str.end() && *it1 != ' ' && *it1 != '!' && *it1 != '@')
+                    it1++;
+                it1--;
+            }
+        }
+    }
+    if (it2 != format.end())
+        return false;
+    return true;
+}

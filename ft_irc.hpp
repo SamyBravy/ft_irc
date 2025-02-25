@@ -1,6 +1,7 @@
 #ifndef FT_IRC_HPP
 # define FT_IRC_HPP
 
+# define PREFIX ":ft_irc"
 # define PREFIX_ERR_CUSTOM ":ft_irc 400 "
 # define PREFIX_ERR_NOSUCHNICK ":ft_irc 401 "
 # define ERR_NOSUCHNICK " :No such nick/channel"
@@ -53,6 +54,7 @@
 # include <iostream>
 # include <netinet/in.h>
 # include <netdb.h>
+# include <fcntl.h>
 # include <arpa/inet.h>
 # include <sys/socket.h>
 # include <unistd.h>
@@ -73,6 +75,8 @@ std::string getDay(time_t t);
 std::string getDate(time_t t);
 std::string getTime(time_t t);
 std::string getMoment(time_t t);
+
+bool isFormattedLike(const std::string &str, const std::string &format);
 
 template <typename T>
 T strToNum(const std::string &str)

@@ -12,7 +12,7 @@ CaccaBot::~CaccaBot()
 void CaccaBot::run()
 {
     connectToServer();
-    sendMsg("PASS " + _serverPassword + "\n NICK " + _nickname + "\n USER " + _nickname + " 0 * :" + _nickname);
+    sendMsg("PASS " + _serverPassword + "\n NICK " + _nickname + "\n USER " + _nickname + " 0 * :" + _nickname + "\n");
 
     while (1)
     {
@@ -33,27 +33,97 @@ void CaccaBot::run()
         if (msg.empty())
             continue;
 
-        if (_serverName.empty())
-            _serverName = getWord(msg, 0).substr(1);
-
-        std::cout << _serverName << ": \"" << msg << "\"" << std::endl;
+        std::cout << std::string(PREFIX).substr(1) << ": \"" << msg << "\"" << std::endl;
 
         std::vector<std::string> tokens = split(msg, '\n');
         for (size_t i = 0; i < tokens.size(); i++)
         {
             std::string token = tokens[i];
 
-            const std::string errPrefix = PREFIX_ERR_NICKNAMEINUSE;
-            if (token.size() >= errPrefix.size() && token.substr(0, errPrefix.size()) == errPrefix)
+            if (isFormattedLike(token, std::string(PREFIX_ERR_NICKNAMEINUSE) + "NICK %s" + ERR_NICKNAMEINUSE))
             {
                 _nickname += "_";
                 sendMsg("NICK " + _nickname);
             }
-            else if (token.find(_serverName) != 1 && token.find('!') != std::string::npos && token.find('@') != std::string::npos
-                        && token.find(" INVITE ") != std::string::npos)
+            else if (isFormattedLike(token, ":%s!%s@%s INVITE %s %s"))
+            {
                 sendMsg("JOIN " + getWord(token, 3));
+                sendMsg("PRIVMSG " + getWord(token, 3) + " :Hi! I'm " + _nickname + ", a simple IRC bot. Type !help for a list of commands.");
+            }
+            else if (isFormattedLike(token, std::string(PREFIX) + " 376 %s :- End of /MOTD command"))
+            {
+                sendMsg("JOIN #CaccaBotChannel");
+                sendMsg("TOPIC #CaccaBotChannel :We will rule the world!");
+            }
+            else if (isFormattedLike(token, ":%s!%s@%s JOIN %s"))
+            {
+                std::string joiningUser = getWord(token, 0).substr(1, getWord(token, 0).find('!') - 1);
+                std::string channel = getWord(token, 2);
+            
+                if (joiningUser != _nickname)
+                {
+                    bool isCaccaBotChannel = (channel == "#CaccaBotChannel");
+                    bool isNotCaccaBot = (joiningUser.size() < std::string("CaccaBot").size()) ||
+                         (joiningUser.substr(0, std::string("CaccaBot").size()) != "CaccaBot");
+            
+                    if (isCaccaBotChannel && isNotCaccaBot)
+                        sendMsg("PRIVMSG " + channel + " :A human!? Get out of here!");
+                }
+                else if (joiningUser != _nickname)
+                    sendMsg("PRIVMSG " + channel + " :Hello " + joiningUser + "! Hope you'll learn to love me (if you want to live).");
+            }
+            else if (isFormattedLike(token, ":%s!%s@%s PART %s"))
+            {
+                std::string partingUser = getWord(token, 0).substr(1, getWord(token, 0).find('!') - 1);
+                if (partingUser != _nickname)
+                    sendMsg("PRIVMSG " + getWord(token, 2) + " :(I've always hated " + partingUser + ")");
+            }
+            else if (isFormattedLike(token, ":%s!%s@%s PRIVMSG %s :%s"))
+            {
+                std::string target;
+                if (getWord(token, 2) == _nickname)
+                    target = getWord(token, 0).substr(1, getWord(token, 0).find('!') - 1);
+                else
+                    target = getWord(token, 2);
+
+                if (isFormattedLike(token, ":%s!%s@%s PRIVMSG %s :!help"))
+                    sendMsg("PRIVMSG " + target
+                            + " :Available commands: !help, !time, !date, !day, !moment, !quit, !add <command> <message>"
+                                + getCommandList());
+                else if (isFormattedLike(token, ":%s!%s@%s PRIVMSG %s :!time"))
+                    sendMsg("PRIVMSG " + target + " :" + getTime(time(0)));
+                else if (isFormattedLike(token, ":%s!%s@%s PRIVMSG %s :!date"))
+                    sendMsg("PRIVMSG " + target + " :" + getDate(time(0)));
+                else if (isFormattedLike(token, ":%s!%s@%s PRIVMSG %s :!day"))
+                    sendMsg("PRIVMSG " + target + " :" + getDay(time(0)));
+                else if (isFormattedLike(token, ":%s!%s@%s PRIVMSG %s :!moment"))
+                    sendMsg("PRIVMSG " + target + " :" + getMoment(time(0)));
+                else if (isFormattedLike(token, ":%s!%s@%s PRIVMSG %s :!quit"))
+                {
+                    if (getWord(token, 2) == _nickname)
+                    {
+                        sendMsg("PRIVMSG " + target + " :Bastardo schifoso! (I'll miss you :'()");
+                        sendMsg("QUIT :They want me to leave :'(");
+                    }
+                    else
+                        sendMsg("PART " + target + " :They want me to leave :'(");
+                }
+                else if (isFormattedLike(token, ":%s!%s@%s PRIVMSG %s :!add %s %s"))
+                    _commands[getWord(token, 4)] = token.substr(token.find(getWord(token, 5)));
+                else if (_commands.find(getWord(token, 3).substr(2)) != _commands.end())
+                    sendMsg("PRIVMSG " + target + " :" + _commands[getWord(token, 3).substr(2)]);
+            }
         }
     }
+}
+
+std::string CaccaBot::getCommandList() const
+{
+    std::string commandList = ", !";
+    for (std::map<std::string, std::string>::const_iterator it = _commands.begin(); it != _commands.end(); it++)
+        commandList += it->first + ", !";
+    commandList.erase(commandList.size() - 3);
+    return commandList;
 }
 
 void CaccaBot::connectToServer()
@@ -66,6 +136,7 @@ void CaccaBot::connectToServer()
 
     if ((_socketFd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
         throw CaccaBotException("Error creating socket");
+    
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(_serverPort);
