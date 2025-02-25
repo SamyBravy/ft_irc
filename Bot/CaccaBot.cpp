@@ -70,9 +70,9 @@ void CaccaBot::run()
             
                     if (isCaccaBotChannel && isNotCaccaBot)
                         sendMsg("PRIVMSG " + channel + " :A human!? Get out of here!");
+                    else if (isNotCaccaBot)
+                        sendMsg("PRIVMSG " + channel + " :Hello " + joiningUser + "! Hope you'll learn to love me (if you want to live).");
                 }
-                else if (joiningUser != _nickname)
-                    sendMsg("PRIVMSG " + channel + " :Hello " + joiningUser + "! Hope you'll learn to love me (if you want to live).");
             }
             else if (isFormattedLike(token, ":%s!%s@%s PART %s"))
             {
@@ -139,6 +139,18 @@ void CaccaBot::connectToServer()
     if ((_socketFd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
         throw CaccaBotException("Error creating socket");
     
+    int opt = 1;
+    if (setsockopt(_socketFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int)) == -1)
+    {
+        close(_socketFd);
+        throw CaccaBotException("Error setting socket options");
+    }
+
+    if (fcntl(_socketFd, F_SETFL, O_NONBLOCK) == -1)
+    {
+        close(_socketFd);
+        throw CaccaBotException("Error setting socket to non-blocking");
+    }
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(_serverPort);

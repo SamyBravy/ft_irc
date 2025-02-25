@@ -577,12 +577,12 @@ bool Server::operatorMode(const std::string &channel, const std::string &argumen
         sendMsg(client.fd, PREFIX_ERR_USERNOTINCHANNEL + client.nickname + " " + argument + " " + channel + ERR_USERNOTINCHANNEL);
     else
     {
-        if (add)
+        _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
+                                    + " MODE " + channel + " " + (add ? "+o " : "-o ") + argument);
+        if (!add)
             _channels[channel].unsetOperator(argument);
         else
             _channels[channel].setOperator(argument);
-        _channels[channel].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
-                                    + " MODE " + channel + " " + (add ? "+o " : "-o ") + argument);
     }
     return true;
 }

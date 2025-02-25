@@ -133,6 +133,15 @@ void Channel::unsetOperator(const std::string &nickname)
     {
         _users[nickname].isOperator = false;
         _operatorsCount--;
+
+        if (_operatorsCount == 0)
+        {
+            std::map<std::string, ChannelClient>::iterator it = _users.begin();
+            std::advance(it, rand() % _users.size());
+            setOperator(it->first);
+            sendMsg(":" + _users[nickname].client->nickname + "!" + _users[nickname].client->username + "@"
+                    + _users[nickname].client->hostname + " MODE " + _name + " +o " + it->first);
+        }
     }
 }
 
@@ -141,7 +150,18 @@ std::string Channel::getMode() const
     if (!_inviteOnly && !_topicProtected && _password.empty() && !_limit)
         return "none";
     
-    return std::string("+") + (_inviteOnly ? "i" : "") + (_topicProtected ? "t" : "") + (!_password.empty() ? "k" : "") + (_limit ? "l" : "");
+    std::string mode = std::string("+") + (_inviteOnly ? "i" : "") + (!_password.empty() ? "k" : "")
+                        + (_limit ? "l" : "") + (_topicProtected ? "t" : "");
+    if (!_password.empty())
+        mode += " ****";
+    if (_limit)
+    {
+        std::ostringstream oss;
+        oss << " " << _limit;
+        mode += oss.str();
+    }
+    
+    return mode;
 }
 
 std::string Channel::getNames() const
