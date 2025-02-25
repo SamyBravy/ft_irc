@@ -40,7 +40,9 @@ void CaccaBot::run()
         {
             std::string token = tokens[i];
 
-            if (isFormattedLike(token, std::string(PREFIX_ERR_NICKNAMEINUSE) + "NICK %s" + ERR_NICKNAMEINUSE))
+            if (isFormattedLike(token, PREFIX_ERR_PASSWDMISMATCH))
+                return;
+            else if (isFormattedLike(token, PREFIX_ERR_NICKNAMEINUSE))
             {
                 _nickname += "_";
                 sendMsg("NICK " + _nickname);
