@@ -7,7 +7,7 @@ class CaccaBot
 {
     private:
         std::string _nickname;
-        int _serverFd;
+        int _socketFd;
         std::string _serverIp;
         int _serverPort;
         std::string _serverPassword;
