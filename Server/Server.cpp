@@ -9,7 +9,9 @@ Server::Server(int port, const std::string &password) : _fd(-1), _port(port), _p
 Server::~Server()
 {
     if (_fd != -1)
-    close(_fd);
+    {
+        close(_fd);
+    }
 	
 	for (size_t i = 0; i < _clients.size(); i++)
 	{
@@ -206,7 +208,7 @@ void Server::nickCommand(const std::string &message, Client &client)
         sendMsg(client.fd, PREFIX_ERR_NONICKNAMEGIVEN + client.nickname + " NICK" + ERR_NONICKNAMEGIVEN);
     else if (message.find_first_of(":@#&") != std::string::npos)
         sendMsg(client.fd, PREFIX_ERR_ERRONEUSNICKNAME + client.nickname + " NICK " + nick + ERR_ERRONEUSNICKNAME);
-    else if (clientExists(nick))
+    else if (clientExists(nick) || nick == "ft_irc")
     {
         if (client.authenticated == false)
             sendMsg(client.fd, PREFIX_ERR_NICKNAMEINUSE + std::string(" NICK ") + nick + ERR_NICKNAMEINUSE);
@@ -230,7 +232,7 @@ void Server::userCommand(const std::string &message, Client &client)
         client.username = getWord(message, 1);
         client.hostname = getWord(message, 2);
         client.servername = getWord(message, 3);
-        if (getWord(message, 4).find_first_of(":") == 0)
+        if (getWord(message, 4).find(':') == 0)
         {
             client.realname = getWord(message, 4).substr(1);
             for (int i = 5; i < countWords(message); i++)
@@ -348,9 +350,9 @@ void Server::privmsgCommand(const std::string &message, Client &client)
 {
     if (countWords(message) < 2)
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " PRIVMSG" + ERR_NEEDMOREPARAMS);
-    else if (getWord(message, 1).find_first_of(":") == 0)
+    else if (getWord(message, 1).find(':') == 0)
         sendMsg(client.fd, PREFIX_ERR_NORECIPIENT + client.nickname + " PRIVMSG" + ERR_NORECIPIENT);
-    else if (message.find_first_of(":") == std::string::npos)
+    else if (message.find(':') == std::string::npos)
         sendMsg(client.fd, PREFIX_ERR_NOTEXTTOSEND + client.nickname + " PRIVMSG" + ERR_NOTEXTTOSEND);
     else
     {
@@ -363,7 +365,7 @@ void Server::privmsgCommand(const std::string &message, Client &client)
             else
             {
                 std::string toSendMsg = ":" + client.nickname + "!" + client.username + "@" + client.hostname + " PRIVMSG "
-                    + target + " " + message.substr(message.find_first_of(":"));
+                    + target + " " + message.substr(message.find(':'));
                 if (clientExists(target))
                     sendMsg(getClient(target).fd, toSendMsg);
                 else
@@ -381,8 +383,8 @@ void Server::privmsgCommand(const std::string &message, Client &client)
 void Server::noticeCommand(const std::string &message, Client &client)
 {
     if (!(countWords(message) < 2)
-        && !(getWord(message, 1).find_first_of(":") == 0)
-        && !(message.find_first_of(":") == std::string::npos))
+        && !(getWord(message, 1).find(':') == 0)
+        && !(message.find(':') == std::string::npos))
     {
         std::vector<std::string> targets = split(getWord(message, 1), ',');
         for (size_t i = 0; i < targets.size(); i++)
@@ -391,7 +393,7 @@ void Server::noticeCommand(const std::string &message, Client &client)
             if (!(!clientExists(target) && !channelExists(target)))
             {
                 std::string toSendMsg = ":" + client.nickname + "!" + client.username + "@" + client.hostname + " NOTICE "
-                    + target + " " + message.substr(message.find_first_of(":"));
+                    + target + " " + message.substr(message.find(':'));
                 if (clientExists(target))
                     sendMsg(getClient(target).fd, toSendMsg);
                 else
@@ -428,7 +430,7 @@ void Server::modeCommand(const std::string &message, Client &client)
     else if (!_channels[target].userExists(client.nickname))
         sendMsg(client.fd, PREFIX_ERR_NOTONCHANNEL + client.nickname + " " + target + ERR_NOTONCHANNEL);
     else if (countWords(message) == 3 && modes.find_first_not_of("+-o") == std::string::npos
-        && modes.find_first_of("+-") == 0 && modes.find_first_of("o") != std::string::npos)
+        && modes.find_first_of("+-") == 0 && modes.find('o') != std::string::npos)
         operatorMode(target, "", true, client);
     else if (!_channels[target].isOperator(client.nickname))
         sendMsg(client.fd, PREFIX_ERR_CHANOPRIVSNEEDED + client.nickname + " " + target + ERR_CHANOPRIVSNEEDED);
@@ -576,8 +578,8 @@ void Server::quitCommand(const std::string &message, Client &client)
         std::cout << client.nickname << " disconnected" << std::endl;
 
     std::string reason;
-    if (countWords(message) > 1 && message.find_first_of(":") != std::string::npos)
-        reason = message.substr(message.find_first_of(":") + 1);
+    if (countWords(message) > 1 && message.find(':') != std::string::npos)
+        reason = message.substr(message.find(':') + 1);
     else
         reason = "Reason not specified";
 
@@ -597,8 +599,8 @@ void Server::partCommand(const std::string &message, Client &client)
     {
         std::vector<std::string> channelNames = split(getWord(message, 1), ',');
         std::string reason;
-        if (countWords(message) > 2 && message.find_first_of(":") != std::string::npos)
-            reason = message.substr(message.find_first_of(":") + 1);
+        if (countWords(message) > 2 && message.find(':') != std::string::npos)
+            reason = message.substr(message.find(':') + 1);
         else
             reason = "Reason not specified";
         
@@ -639,8 +641,8 @@ void Server::kickCommand(const std::string &message, Client &client)
     else
     {
         std::string reason;
-        if (countWords(message) > 3 && message.find_first_of(":") != std::string::npos)
-            reason = message.substr(message.find_first_of(":") + 1);
+        if (countWords(message) > 3 && message.find(':') != std::string::npos)
+            reason = message.substr(message.find(':') + 1);
         else
             reason = "Reason not specified";
 
@@ -681,7 +683,7 @@ void Server::topicCommand(const std::string &message, Client &client)
 {
     std::string channelName = getWord(message, 1);
 
-    if (countWords(message) < 2 || (message.find_first_of(":") == std::string::npos && countWords(message) > 2))
+    if (countWords(message) < 2 || (message.find(':') == std::string::npos && countWords(message) > 2))
         sendMsg(client.fd, PREFIX_ERR_NEEDMOREPARAMS + client.nickname + " TOPIC" + ERR_NEEDMOREPARAMS);
     else if (!channelExists(channelName))
         sendMsg(client.fd, PREFIX_ERR_NOSUCHCHANNEL + client.nickname + " " + channelName + ERR_NOSUCHCHANNEL);
@@ -704,7 +706,7 @@ void Server::topicCommand(const std::string &message, Client &client)
             sendMsg(client.fd, PREFIX_ERR_CHANOPRIVSNEEDED + client.nickname + " " + channelName + ERR_CHANOPRIVSNEEDED);
         else
         {
-            std::string topic = message.substr(message.find_first_of(":") + 1);
+            std::string topic = message.substr(message.find(':') + 1);
             _channels[channelName].setTopic(topic, client.nickname);
             _channels[channelName].sendMsg(":" + client.nickname + "!" + client.username + "@" + client.hostname
                         + " TOPIC " + channelName + " :" + topic);

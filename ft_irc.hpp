@@ -45,6 +45,10 @@
 # define PREFIX_ERR_CHANOPRIVSNEEDED ":ft_irc 482 "
 # define ERR_CHANOPRIVSNEEDED " :You're not channel operator"
 
+# ifndef IS_SERVER
+#  define IS_SERVER 1
+# endif
+
 # include <cstring>
 # include <iostream>
 # include <netinet/in.h>

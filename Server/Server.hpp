@@ -1,9 +1,9 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
+# include "../ft_irc.hpp"
 # include "Channel.hpp"
 # include "Client.hpp"
-# include "ft_irc.hpp"
 
 class Channel;
 struct Client;

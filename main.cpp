@@ -1,10 +1,26 @@
 #include "ft_irc.hpp"
-#include "Server.hpp"
+#include "./Server/Server.hpp"
+#include "./Bot/CaccaBot.hpp"
+
+static bool mainServer(int argc, char *argv[]);
+static bool mainCaccaBot(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
     srand(time(0));
     
+    if (IS_SERVER)
+        return mainServer(argc, argv);
+    else
+    {
+        return mainCaccaBot(argc, argv);
+    }
+
+	return 0;
+}
+
+static bool mainServer(int argc, char *argv[])
+{
     if (argc != 3)
 	{
 		std::cerr << "Error: usage: " << argv[0] << " <port> <password>" << std::endl;
@@ -35,7 +51,41 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	return 0;
+    return 0;
+}
+
+static bool mainCaccaBot(int argc, char *argv[])
+{
+    if (argc != 4)
+    {
+        std::cerr << "Error: usage: " << argv[0] << " <ip> <port> <password>" << std::endl;
+        return 1;
+    }
+    if (std::string(argv[2]).find_first_not_of("0123456789") != std::string::npos
+        || strToNum<int>(argv[2]) < 1024 || strToNum<int>(argv[2]) > 49151)
+    {
+        std::cerr << "Error: port must be an integer between 1024 and 49151" << std::endl;
+        return 1;
+    }
+    if (argv[3][0] == '\0')
+    {
+        std::cerr << "Error: password cannot be empty" << std::endl;
+        return 1;
+    }
+
+    CaccaBot bot(argv[1], strToNum<int>(argv[2]), argv[3]);
+
+    try
+    {
+        bot.run();
+    }
+    catch (const CaccaBot::CaccaBotException &e)
+    {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
+
+    return 0;
 }
 
 std::vector<std::string> split(const std::string &str, char delim)
