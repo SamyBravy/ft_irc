@@ -17,7 +17,7 @@ void CaccaBot::run()
     while (1)
     {
         char buffer[1024];
-        int bytes = recv(_serverFd, buffer, 1024, 0);
+        int bytes = recv(_serverFd, buffer, sizeof(buffer), 0);
         if (bytes == -1)
             throw CaccaBotException("Error receiving message from server");
         else if (bytes == 0)
