@@ -1,12 +1,12 @@
 #include "CaccaBot.hpp"
 
 CaccaBot::CaccaBot(const std::string &ip, int port, const std::string &password)
-                    : _nickname("CaccaBot"), _serverFd(-1), _serverIp(ip), _serverPort(port), _serverPassword(password) { }
+                    : _nickname("CaccaBot"), _socketFd(-1), _serverIp(ip), _serverPort(port), _serverPassword(password) { }
 
 CaccaBot::~CaccaBot()
 {
-    if (_serverFd != -1)
-        close(_serverFd);
+    if (_socketFd != -1)
+        close(_socketFd);
 }
 
 void CaccaBot::run()
@@ -17,7 +17,7 @@ void CaccaBot::run()
     while (1)
     {
         char buffer[1024];
-        int bytes = recv(_serverFd, buffer, sizeof(buffer), 0);
+        int bytes = recv(_socketFd, buffer, sizeof(buffer), 0);
         if (bytes == -1)
             throw CaccaBotException("Error receiving message from server");
         else if (bytes == 0)
@@ -64,16 +64,16 @@ void CaccaBot::connectToServer()
     if ((host = gethostbyname(_serverIp.c_str())) == NULL)
         throw CaccaBotException("Error getting host by name");
 
-    if ((_serverFd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    if ((_socketFd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
         throw CaccaBotException("Error creating socket");
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(_serverPort);
     server_addr.sin_addr = *reinterpret_cast<struct in_addr *>(host->h_addr);
 
-    if (connect(_serverFd, reinterpret_cast<struct sockaddr *>(&server_addr), sizeof(server_addr)) == -1)
+    if (connect(_socketFd, reinterpret_cast<struct sockaddr *>(&server_addr), sizeof(server_addr)) == -1)
     {
-        close(_serverFd);
+        close(_socketFd);
         throw CaccaBotException("Error connecting to server");
     }
 
@@ -83,7 +83,7 @@ void CaccaBot::connectToServer()
 void CaccaBot::sendMsg(std::string msg) const
 {
     msg += "\n";
-    if (send(_serverFd, msg.c_str(), msg.length(), 0) == -1)
+    if (send(_socketFd, msg.c_str(), msg.length(), 0) == -1)
         throw CaccaBotException("Error sending message");
 }
 
