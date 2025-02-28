@@ -1,7 +1,10 @@
 #include "Server.hpp"
 
-Server::Server(int port, const std::string &password) : _fd(-1), _port(port), _password(password)
+int Server::_fd = -1;
+
+Server::Server(int port, const std::string &password) : _port(port), _password(password)
 {
+    _fd = -1;
     initCommandsAndModes();
     _clients.reserve(100);
 }
@@ -11,6 +14,7 @@ Server::~Server()
     if (_fd != -1)
     {
         close(_fd);
+        _fd = -1;
     }
 	
 	for (size_t i = 0; i < _clients.size(); i++)
@@ -71,8 +75,21 @@ void Server::sendMsg(int fd, std::string msg) const
         std::cerr << "Error sending message" << std::endl;
 }
 
+void Server::closeSocket(int signal)
+{
+    (void)signal;
+    if (_fd != -1)
+    {
+        close(_fd);
+        _fd = -1;
+    }
+    std::cout << "\b\b  \b\b";
+    throw Server::ServerException("Server closed");
+}
+
 void Server::listenClients()
 {
+    signal(SIGINT, closeSocket);
     while (1)
 	{
 		std::vector<struct pollfd> fds = getPollfds();
@@ -776,13 +793,19 @@ void Server::handleMessage(std::string message, size_t iClient)
 
 void Server::removeEmptyChannels()
 {
-    for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); it++)
+    bool removed = true;
+    while (removed)
     {
-        if (it->second.getUsersSize() == 0)
+        removed = false;
+        for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); it++)
         {
-            std::cout << "Channel " << it->first << " removed" << std::endl;
-            _channels.erase(it);
-            it = _channels.begin();
+            if (it->second.getUsersSize() == 0)
+            {
+                std::cout << "Channel " << it->first << " removed" << std::endl;
+                _channels.erase(it);
+                removed = true;
+                break;
+            }
         }
     }
 }
@@ -821,18 +844,21 @@ void Server::bindServer()
 	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
     {
         close(_fd);
+        _fd = -1;
         throw ServerException("Error setting socket options");
     }
 
     if (fcntl(_fd, F_SETFL, O_NONBLOCK) < 0)
     {
         close(_fd);
+        _fd = -1;
         throw ServerException("Error setting socket to non-blocking");
     }
 
 	if (bind(_fd, reinterpret_cast<struct sockaddr *>(&_server_addr), sizeof(_server_addr)) < 0)
 	{
 		close(_fd);
+        _fd = -1;
 		throw ServerException("Error binding server");
 	}
 
@@ -844,6 +870,7 @@ void Server::listenServer()
 	if (listen(_fd, 10) < 0)
 	{
 		close(_fd);
+        _fd = -1;
 		throw ServerException("Error listening server");
 	}
 

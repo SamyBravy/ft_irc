@@ -7,13 +7,15 @@ class CaccaBot
 {
     private:
         std::string _nickname;
-        int _socketFd;
+        static int _socketFd;
         std::string _serverIp;
         int _serverPort;
         std::string _serverPassword;
         std::map<std::string, std::string> _commands;
 
         void connectToServer();
+        void handleMessages(struct pollfd &pollFd);
+        static void closeSocket(int signal);
         void sendMsg(std::string msg) const;
     
     public:

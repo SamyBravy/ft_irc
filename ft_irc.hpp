@@ -52,6 +52,7 @@
 
 # include <cstring>
 # include <iostream>
+# include <csignal>
 # include <netinet/in.h>
 # include <netdb.h>
 # include <fcntl.h>

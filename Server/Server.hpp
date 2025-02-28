@@ -11,7 +11,7 @@ struct Client;
 class Server
 {	
 	private:
-		int _fd;
+		static int _fd;
 		int _port;
         std::string _ip;
 		std::string _password;
@@ -27,6 +27,7 @@ class Server
 		void bindServer();
 		void listenServer();
         Client &getClient(const std::string nickname);
+        static void closeSocket(int signal);
         
         void sendWelcomeMessage(const Client &client) const;
         void handleMessage(std::string message, size_t i);
