@@ -85,7 +85,10 @@ void CaccaBot::handleMessages(struct pollfd &pollFd)
         std::string token = tokens[i];
 
         if (isFormattedLike(token, PREFIX_ERR_PASSWDMISMATCH))
-            throw CaccaBotException("Error: password mismatch");
+        {
+            sendMsg("QUIT :Password incorrect");
+            throw CaccaBotException("Password incorrect");
+        }
         else if (isFormattedLike(token, PREFIX_ERR_NICKNAMEINUSE))
         {
             _nickname += "_";

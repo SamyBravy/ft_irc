@@ -764,7 +764,7 @@ void Server::handleMessage(std::string message, size_t iClient)
         std::string token = tokens[i];
         std::string command = getWord(token, 0);
 
-        if (command == "CAP" || command == "PING" || (command == "PASS" && client.password.empty()))
+        if (command == "CAP" || command == "PING" || (command == "PASS" && client.password.empty()) || (command == "QUIT"))
             (this->*_commands[command])(token, client);
         else if (client.password.empty())
             sendMsg(client.fd, PREFIX_ERR_CUSTOM + std::string(":You must send a password first"));
