@@ -1,118 +1,99 @@
+# ft_irc: Internet Relay Chat Server
 
-# ft_irc
+[![Standard](https://img.shields.io/badge/Standard-C++98-blue.svg)](https://isocpp.org/)
+[![Network](https://img.shields.io/badge/Protocol-TCP%2FIP-orange.svg)]()
+[![Architecture](https://img.shields.io/badge/Architecture-Non--Blocking%20I%2FO-green.svg)]()
 
-This project involves creating a functioning IRC (Internet Relay Chat) server in C++ 98. The server is capable of handling multiple client connections simultaneously using non-blocking I/O and a single poll loop. It communicates with standard IRC clients (such as HexChat or nc) following the Internet Relay Chat Protocol.
+## Abstract
 
-## Description
+**ft_irc** is a complete implementation of an Internet Relay Chat (IRC) server, written in C++98. It is designed to demonstrate mastery of low-level networking, socket programming, and protocol parsing as defined in **RFC 1459**.
 
-The goal of `ft_irc` is to understand the inner workings of network protocols, socket programming, and TCP/IP communication. The server manages users, channels, and message relaying while adhering to the C++98 standard. It ensures stability and prevents hanging even under load.
+The system is built on a **single-threaded, non-blocking I/O architecture** using `poll()`. This design choice ensures the server handles multiple concurrent connections efficiently without the resource overhead of multi-threading, maintaining stability even under heavy load or partial data transmission.
 
-## Requirements
+## Installation
 
-*   GCC or Clang compiler supporting C++98
-*   Make
-*   A Unix-based operating system (Linux/macOS)
+### Prerequisites
+*   C++ Compiler (`g++` or `clang++`)
+*   `make`
+*   Any IRC Client (HexChat recommended)
 
-## Compilation
+### Compilation
+The project utilizes a custom `Makefile` to manage builds for both the server and the automated service agent (bot).
 
-The project includes a `Makefile` to compile both the server and the bonus bot.
-
-*   To compile the server and the bot:
-    ```bash
-    make
-    ```
-
-*   To compile only the server:
-    ```bash
-    make ircserv
-    ```
-
-*   To compile only the bot:
-    ```bash
-    make ircbot
-    ```
-
-*   To clean object files:
-    ```bash
-    make clean
-    ```
-
-*   To clean object files and executables:
-    ```bash
-    make fclean
-    ```
+| Command | Action |
+|:---:|---|
+| `make` | Compiles **both** the Server and the Bot. |
+| `make ircserv` | Compiles only the **Server**. |
+| `make ircbot` | Compiles only the **Bot**. |
+| `make fclean` | Removes all object files and executables. |
 
 ## Usage
 
-### Running the Server
-
-The server requires a listening port and a connection password.
+### 1. Start the Server
+The server listens on a specified port and requires a password for incoming connections.
 
 ```bash
 ./ircserv <port> <password>
 ```
+*Example:* `./ircserv 6667 securepass`
 
-*   `<port>`: The port number to listen on (must be between 1024 and 49151).
-*   `<password>`: The password required for clients to connect.
+### 2. Connect a Client
+While raw TCP connections (`nc`) work, a dedicated client provides the best testing environment.
 
-**Example:**
-```bash
-./ircserv 6667 mysecretpassword
-```
+#### Recommended: HexChat
+**HexChat** is highly recommended for testing channel modes and operator privileges visually.
 
-### Running the Bot (Bonus)
+1.  Open HexChat and navigate to **Network List** (`Ctrl+S`).
+2.  Add a new network named `ft_irc`.
+3.  Edit the server details:
+    *   **Server:** `localhost/6667` (or your port).
+    *   **Password:** The password used to launch the server.
+    *   **SSL:** Disabled.
+4.  Connect.
 
-The project includes a custom bot named `BravyBot`. It connects to the server and provides utility commands.
+### 3. Launch the Bot (Optional)
+The **BravyBot** is an autonomous agent that connects to the server to provide utility services.
 
 ```bash
 ./ircbot <ip> <port> <password>
 ```
+*Example:* `./ircbot 127.0.0.1 6667 securepass`
 
-*   `<ip>`: The IP address of the IRC server (e.g., 127.0.0.1).
-*   `<port>`: The port the server is listening on.
-*   `<password>`: The server's password.
+## Features & Implementation
 
-**Example:**
-```bash
-./ircbot 127.0.0.1 6667 mysecretpassword
-```
+### Technical Architecture
+*   **I/O Multiplexing:** Uses `poll()` to monitor all file descriptors (sockets) within a single event loop.
+*   **Non-Blocking:** All sockets are set to non-blocking mode via `fcntl()`.
+*   **Memory Safety:** Strict RAII compliance (C++98) ensuring zero memory leaks.
 
-## Features
-
-### Technical Implementation
-*   **Non-blocking I/O**: Uses `fcntl` to set file descriptors to non-blocking mode.
-*   **Polling**: Uses `poll()` to handle multiple file descriptors (clients and server socket) within a single thread.
-*   **C++98 Compliance**: Adheres strictly to the standard without using external libraries (like Boost).
-
-### Supported Commands
-The server implements the following IRC commands:
-
-*   **Authentication**: `CAP`, `PASS`, `NICK`, `USER`
-*   **Channel Management**: `JOIN`, `PART`, `TOPIC`, `INVITE`, `KICK`
-*   **Communication**: `PRIVMSG`, `NOTICE`
-*   **Utility**: `PING`, `WHO`, `QUIT`, `MODE`
+### Server Commands
+The server supports the standard IRC lifecycle including:
+*   **Auth:** `CAP`, `PASS`, `NICK`, `USER`
+*   **Operations:** `JOIN`, `PART`, `TOPIC`, `PRIVMSG`, `NOTICE`
+*   **Management:** `KICK`, `INVITE`, `QUIT`, `PING/PONG`
 
 ### Channel Modes
-The `MODE` command supports the following channel flags:
+Operators can control channel behavior using the `MODE` command:
 
-*   `i`: Set/remove Invite-only channel.
-*   `t`: Set/remove the restrictions of the TOPIC command to channel operators.
-*   `k`: Set/remove the channel key (password).
-*   `o`: Give/take channel operator privilege.
-*   `l`: Set/remove the user limit to channel.
+| Flag | Description |
+|:---:|---|
+| **i** | **Invite-only:** Only invited users can join. |
+| **t** | **Protected Topic:** Only operators can change the topic. |
+| **k** | **Key:** Requires a password to join. |
+| **o** | **Operator:** Grants/revokes operator status. |
+| **l** | **Limit:** Sets a maximum number of users. |
 
-### Bot Features
-The `BravyBot` connects to the server, joins a default channel (`#BravyBotChannel`), and responds to specific commands via private message or channel chat:
+### Automated Agent (Bot)
+The `BravyBot` automatically joins `#BravyBotChannel` upon connection and interacts via private messages or channel chat.
 
-*   `!help`: Displays the list of available commands.
-*   `!time`: Displays the current time.
-*   `!date`: Displays the current date.
-*   `!day`: Displays the current day of the week.
-*   `!moment`: Displays the full date and time.
-*   `!add <command> <message>`: Adds a custom command dynamically.
-*   `!quit`: Disconnects the bot (if issued by the bot itself) or makes it leave the channel.
+**Available Commands:**
+*   `!help` : Displays available commands.
+*   `!time` / `!date` : Returns the current server time/date.
+*   `!moment` : Returns full timestamp.
+*   `!add <cmd> <msg>` : Dynamically teaches the bot a new custom command.
+*   `!quit` : Disconnects the bot.
 
-The bot also interacts automatically when:
-*   Invited to a channel (joins automatically).
-*   A user joins a channel (greets them).
-*   A user leaves a channel (sends a farewell message).
+**Behaviors:**
+*   **Auto-Join:** Automatically accepts invites to new channels.
+*   **Greetings:** Welcomes users when they join a channel.
+*   **Farewells:** Acknowledges users leaving a channel.

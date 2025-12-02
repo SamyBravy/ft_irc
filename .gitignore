@@ -1,1 +1,22 @@
-.vscode
+# Executables
+ircserv
+*.out
+*.exe
+
+# Object files & Deps
+*.o
+*.d
+
+# Logs and databases (se hai implementato persistenza o log)
+*.log
+*.txt
+
+# OS & IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Clients (se hai scaricato client IRC nella cartella per testare)
+/irssi
+/nc
