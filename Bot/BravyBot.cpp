@@ -1,14 +1,14 @@
-#include "CaccaBot.hpp"
+#include "BravyBot.hpp"
 
-int CaccaBot::_socketFd = -1;
+int BravyBot::_socketFd = -1;
 
-CaccaBot::CaccaBot(const std::string &ip, int port, const std::string &password)
-                    : _nickname("CaccaBot"), _serverIp(ip), _serverPort(port), _serverPassword(password)
+BravyBot::BravyBot(const std::string &ip, int port, const std::string &password)
+                    : _nickname("BravyBot"), _serverIp(ip), _serverPort(port), _serverPassword(password)
 {
     _socketFd = -1;
 }
 
-CaccaBot::~CaccaBot()
+BravyBot::~BravyBot()
 {
     if (_socketFd != -1)
     {
@@ -17,7 +17,7 @@ CaccaBot::~CaccaBot()
     }
 }
 
-void CaccaBot::closeSocket(int signal)
+void BravyBot::closeSocket(int signal)
 {
     (void)signal;
     if (_socketFd != -1)
@@ -26,10 +26,10 @@ void CaccaBot::closeSocket(int signal)
         _socketFd = -1;
     }
     std::cout << "\b\b  \b\b";
-    throw CaccaBotException("Exiting...");
+    throw BravyBotException("Exiting...");
 }
 
-void CaccaBot::run()
+void BravyBot::run()
 {
     connectToServer();
     sendMsg("PASS " + _serverPassword + "\n NICK " + _nickname + "\n USER " + _nickname + " 0 * :" + _nickname + "\n");
@@ -56,7 +56,7 @@ void CaccaBot::run()
     }
 }
 
-void CaccaBot::handleMessages(struct pollfd &pollFd)
+void BravyBot::handleMessages(struct pollfd &pollFd)
 {
     if (poll(&pollFd, 1, -1) == -1)
         throw std::runtime_error("Error polling");
@@ -66,9 +66,9 @@ void CaccaBot::handleMessages(struct pollfd &pollFd)
     char buffer[1024];
     int bytes = recv(_socketFd, buffer, sizeof(buffer), 0);
     if (bytes == -1)
-        throw CaccaBotException("Error receiving message from server");
+        throw BravyBotException("Error receiving message from server");
     else if (bytes == 0)
-        throw CaccaBotException("Server closed connection");
+        throw BravyBotException("Server closed connection");
 
     buffer[bytes] = '\0';
     std::string msg(buffer);
@@ -87,7 +87,7 @@ void CaccaBot::handleMessages(struct pollfd &pollFd)
         if (isFormattedLike(token, PREFIX_ERR_PASSWDMISMATCH))
         {
             sendMsg("QUIT :Password incorrect");
-            throw CaccaBotException("Password incorrect");
+            throw BravyBotException("Password incorrect");
         }
         else if (isFormattedLike(token, PREFIX_ERR_NICKNAMEINUSE))
         {
@@ -101,8 +101,8 @@ void CaccaBot::handleMessages(struct pollfd &pollFd)
         }
         else if (isFormattedLike(token, std::string(PREFIX) + " 376 %s :- End of /MOTD command"))
         {
-            sendMsg("JOIN #CaccaBotChannel");
-            sendMsg("TOPIC #CaccaBotChannel :We will rule the world!");
+            sendMsg("JOIN #BravyBotChannel");
+            sendMsg("TOPIC #BravyBotChannel :We will rule the world!");
         }
         else if (isFormattedLike(token, ":%s!%s@%s JOIN %s"))
         {
@@ -111,13 +111,13 @@ void CaccaBot::handleMessages(struct pollfd &pollFd)
         
             if (joiningUser != _nickname)
             {
-                bool isCaccaBotChannel = (channel == "#CaccaBotChannel");
-                bool isNotCaccaBot = (joiningUser.size() < std::string("CaccaBot").size()) ||
-                    (joiningUser.substr(0, std::string("CaccaBot").size()) != "CaccaBot");
+                bool isBravyBotChannel = (channel == "#BravyBotChannel");
+                bool isNotBravyBot = (joiningUser.size() < std::string("BravyBot").size()) ||
+                    (joiningUser.substr(0, std::string("BravyBot").size()) != "BravyBot");
         
-                if (isCaccaBotChannel && isNotCaccaBot)
+                if (isBravyBotChannel && isNotBravyBot)
                     sendMsg("PRIVMSG " + channel + " :A human!? Get out of here!");
-                else if (isNotCaccaBot)
+                else if (isNotBravyBot)
                     sendMsg("PRIVMSG " + channel + " :Hello " + joiningUser + "! Hope you'll learn to love me (if you want to live).");
             }
         }
@@ -166,7 +166,7 @@ void CaccaBot::handleMessages(struct pollfd &pollFd)
     return;
 }
 
-std::string CaccaBot::getCommandList() const
+std::string BravyBot::getCommandList() const
 {
     std::string commandList = ", !";
     for (std::map<std::string, std::string>::const_iterator it = _commands.begin(); it != _commands.end(); it++)
@@ -175,16 +175,16 @@ std::string CaccaBot::getCommandList() const
     return commandList;
 }
 
-void CaccaBot::connectToServer()
+void BravyBot::connectToServer()
 {
     struct sockaddr_in server_addr;
     struct hostent *host;
     
     if ((host = gethostbyname(_serverIp.c_str())) == NULL)
-        throw CaccaBotException("Error getting host by name");
+        throw BravyBotException("Error getting host by name");
 
     if ((_socketFd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-        throw CaccaBotException("Error creating socket");
+        throw BravyBotException("Error creating socket");
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(_serverPort);
@@ -194,7 +194,7 @@ void CaccaBot::connectToServer()
     {
         close(_socketFd);
         _socketFd = -1;
-        throw CaccaBotException("Error connecting to server");
+        throw BravyBotException("Error connecting to server");
     }
     
     int opt = 1;
@@ -202,29 +202,29 @@ void CaccaBot::connectToServer()
     {
         close(_socketFd);
         _socketFd = -1;
-        throw CaccaBotException("Error setting socket options");
+        throw BravyBotException("Error setting socket options");
     }
 
     if (fcntl(_socketFd, F_SETFL, O_NONBLOCK) == -1)
     {
         close(_socketFd);
         _socketFd = -1;
-        throw CaccaBotException("Error setting socket to non-blocking");
+        throw BravyBotException("Error setting socket to non-blocking");
     }
 
     std::cout << "Connected to server " << _serverIp << " on port " << _serverPort << std::endl;
 }
 
-void CaccaBot::sendMsg(std::string msg) const
+void BravyBot::sendMsg(std::string msg) const
 {
     msg += "\n";
     if (send(_socketFd, msg.c_str(), msg.length(), 0) == -1)
-        throw CaccaBotException("Error sending message");
+        throw BravyBotException("Error sending message");
 }
 
-CaccaBot::CaccaBotException::CaccaBotException(const char *msg) : _msg(msg) { }
+BravyBot::BravyBotException::BravyBotException(const char *msg) : _msg(msg) { }
 
-const char *CaccaBot::CaccaBotException::what() const throw()
+const char *BravyBot::BravyBotException::what() const throw()
 {
 	return _msg;
 }

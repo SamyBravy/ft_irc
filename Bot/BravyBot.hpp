@@ -1,9 +1,9 @@
-#ifndef CACCABOT_HPP
-# define CACCABOT_HPP
+#ifndef BravyBOT_HPP
+# define BravyBOT_HPP
 
 # include "../ft_irc.hpp"
 
-class CaccaBot
+class BravyBot
 {
     private:
         std::string _nickname;
@@ -19,20 +19,20 @@ class CaccaBot
         void sendMsg(std::string msg) const;
     
     public:
-        CaccaBot(const std::string &ip = "127.0.1.1", int port = 8080, const std::string &password = "password");
-        ~CaccaBot();
+        BravyBot(const std::string &ip = "127.0.1.1", int port = 8080, const std::string &password = "password");
+        ~BravyBot();
 
         void run();
 
         std::string getCommandList() const;
 
-        class CaccaBotException : public std::exception
+        class BravyBotException : public std::exception
         {
             private:
                 const char *_msg;
             
             public:
-                CaccaBotException(const char *msg);
+                BravyBotException(const char *msg);
                 virtual const char *what() const throw();
         };
 };

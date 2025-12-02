@@ -12,7 +12,7 @@ SRC_S = main.cpp \
 		./Server/Client.cpp \
 		./Server/Channel.cpp
 SRC_B = main.cpp \
-		./Bot/CaccaBot.cpp
+		./Bot/BravyBot.cpp
 
 FLAGS = -Wall -Wextra -Werror -std=c++98 \
 		-pedantic -Wshadow -Wfloat-equal \

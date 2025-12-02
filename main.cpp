@@ -1,9 +1,9 @@
 #include "ft_irc.hpp"
 #include "./Server/Server.hpp"
-#include "./Bot/CaccaBot.hpp"
+#include "./Bot/BravyBot.hpp"
 
 static bool mainServer(int argc, char *argv[]);
-static bool mainCaccaBot(int argc, char *argv[]);
+static bool mainBravyBot(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
         return mainServer(argc, argv);
     else
     {
-        return mainCaccaBot(argc, argv);
+        return mainBravyBot(argc, argv);
     }
 
 	return 0;
@@ -54,7 +54,7 @@ static bool mainServer(int argc, char *argv[])
     return 0;
 }
 
-static bool mainCaccaBot(int argc, char *argv[])
+static bool mainBravyBot(int argc, char *argv[])
 {
     if (argc != 4)
     {
@@ -73,13 +73,13 @@ static bool mainCaccaBot(int argc, char *argv[])
         return 1;
     }
 
-    CaccaBot bot(argv[1], strToNum<int>(argv[2]), argv[3]);
+    BravyBot bot(argv[1], strToNum<int>(argv[2]), argv[3]);
 
     try
     {
         bot.run();
     }
-    catch (const CaccaBot::CaccaBotException &e)
+    catch (const BravyBot::BravyBotException &e)
     {
         std::cerr << e.what() << std::endl;
         return 1;
