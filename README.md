@@ -62,7 +62,7 @@ The server requires a listening port and a connection password.
 
 ### Running the Bot (Bonus)
 
-The project includes a custom bot named `CaccaBot`. It connects to the server and provides utility commands.
+The project includes a custom bot named `BravyBot`. It connects to the server and provides utility commands.
 
 ```bash
 ./ircbot <ip> <port> <password>
@@ -102,7 +102,7 @@ The `MODE` command supports the following channel flags:
 *   `l`: Set/remove the user limit to channel.
 
 ### Bot Features
-The `CaccaBot` connects to the server, joins a default channel (`#CaccaBotChannel`), and responds to specific commands via private message or channel chat:
+The `BravyBot` connects to the server, joins a default channel (`#BravyBotChannel`), and responds to specific commands via private message or channel chat:
 
 *   `!help`: Displays the list of available commands.
 *   `!time`: Displays the current time.
