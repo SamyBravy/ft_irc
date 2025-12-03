@@ -4,7 +4,7 @@
 [![Network](https://img.shields.io/badge/Protocol-TCP%2FIP-orange.svg)]()
 [![Architecture](https://img.shields.io/badge/Architecture-Non--Blocking%20I%2FO-green.svg)]()
 
-## Abstract
+## Overview
 
 **ft_irc** is a complete implementation of an Internet Relay Chat (IRC) server, written in C++98. It is designed to demonstrate mastery of low-level networking, socket programming, and protocol parsing as defined in **RFC 1459**.
 
